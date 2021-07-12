@@ -1,9 +1,9 @@
 //+------------------------------------------------------------------+
-//|                                                    tradeTool.mq5 |
-//|                                          Copyright 2020, Dorata. |
+//|                                         SEMI AUTOMATIC TRADE.mq5 |
+//|                                           Copyright 2020, SAT's. |
 //|                                                                  |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2020, Dorata."
+#property copyright "Copyright 2020, SAT's."
 #property link      ""
 #property version   "1.2.0"
 #property description "SEMI AUTOMATIC TRADE"
@@ -535,7 +535,7 @@ enum ENUM_SWITCH
 input bool horizon_label_flg = true; // 水平線右はずのラベル false=OFF、true=ON
 input ENUM_SWITCH mktorder_check_tpsl_flg = ON; // 成行注文時に水平線ボタンOFFで売買を許可する
 
-int calc_timer_ms = 50; // ツールの全ての再計算をするタイマー間隔（ミリ秒）
+int calc_timer_ms = 150; // ツールの全ての再計算をするタイマー間隔（ミリ秒）
 
 // 実体変数
 int      my_caption_FontSize  = 10;                   // タイトルのフォントサイズ
@@ -921,6 +921,8 @@ public:
    virtual bool  ChkOnMouse(double x, double y, string sparam);
    
    void UpdateGraph();
+   
+   bool ChkAxesOnPopupPanel(double x, double y);
 protected:
    //--- create dependent controls
    bool              CreateSymbolPopupMenu();
@@ -1269,8 +1271,8 @@ bool CAppWindowSelTradingTool::InitObject()
    //my_caption.Move(my_caption.Left(), my_caption.Top()+zoom_diff/2);
    CAPTION_H = my_caption.Height();
    CAPTION_W = my_caption.Width();
-   CAPTION_TOP = my_caption.Top();
-   CAPTION_LEFT = my_caption.Left();
+   CAPTION_TOP = my_caption.Top()-Top();
+   CAPTION_LEFT = my_caption.Left()-Left();
    
    my_border.ColorBorder(my_border_ColorBorder);
    my_border.ZOrder(9999);
@@ -1358,7 +1360,8 @@ bool CAppWindowSelTradingTool::InitObject()
          if(!CreateCEdit(m_menu_popup_items[k], SYMBOL_MENU_NAME_PREFIX+"item_"+k, _mkt_symbols[k], main_Font, common_FontSize, common_Color, common_edit_ColorBackground, MENU_PANEL_EDIT_WIDTH, MENU_EDIT_HEIGHT, ALIGN_LEFT, true))
             return false;
       }
-   }   
+   }  
+   
    if(!CreateCEdit(m_menu_symbol, "m_menu_symbol", _Symbol, main_Font, common_FontSize, common_Color, symbol_menu_ColorBackground, MENU_EDIT_WIDTH, MENU_EDIT_HEIGHT, ALIGN_LEFT, true))
       return false;   
    if(!CreateCEdit(m_menu_status, "m_menu_status", "", main_Font, common_FontSize, common_Color, symbol_menu_ColorBackground, MENU_EDIT_WIDE_WIDTH, MENU_EDIT_HEIGHT, ALIGN_RIGHT, true))
@@ -1389,9 +1392,9 @@ bool CAppWindowSelTradingTool::InitObject()
       return false;
    if(!CreateCButton(m_common_button_horizon, "m_common_button_horizon", "水平線", main_Font, common_FontSize, sl_nonactive_Color, sl_nonactive_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;
-   if(!CreateCButton(m_common_button_alerm, "m_common_button_alerm", "ｱﾗｰﾑ", main_Font, common_FontSize, sl_nonactive_Color, sl_nonactive_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_common_button_alerm, "m_common_button_alerm", "アラーム", main_Font, common_FontSize, sl_nonactive_Color, sl_nonactive_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;
-   if(!CreateCButton(m_common_button_reset, "sub_common_button_reset", "ﾘｾｯﾄ", main_Font, common_FontSize, bg_active_Color, bg_active_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_common_button_reset, "sub_common_button_reset", "リセット", main_Font, common_FontSize, bg_active_Color, bg_active_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;
    if(!CreateCButton(m_common_button_graph, "sub_common_button_graph", "損益グラフ", main_Font, common_FontSize, bg_active_Color, bg_active_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH*1.5, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;   
@@ -1543,7 +1546,7 @@ bool CAppWindowSelTradingTool::InitObject()
    /**
     * CButton
     */
-   if(!CreateCButton(m_info_button_camera, "m_info_button_camera", "ｶﾒﾗ", main_Font, common_FontSize, camera_Color, camera_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_info_button_camera, "m_info_button_camera", "カメラ", main_Font, common_FontSize, camera_Color, camera_ColorBackground, C'178,195,207', COMMON_LABEL_FOOTER_WIDTH, COMMON_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;
    
    CalcInfo();
@@ -1665,6 +1668,7 @@ bool CAppWindowSelTradingTool::CreateCLabel(CLabel &obj, string name, string tex
       h*oringin_ratio
    ))
       return(false);
+    
    obj.Text(text);
    obj.Font(font);
    obj.FontSize(font_size);
@@ -1673,7 +1677,7 @@ bool CAppWindowSelTradingTool::CreateCLabel(CLabel &obj, string name, string tex
    if(bg_color != "")
       obj.ColorBackground(bg_color);
    ObjectSetInteger(0,name,OBJPROP_ANCHOR,align);
-   obj.Hide();
+   obj.Hide();  
    obj.ZOrder(9999);
    if(!ExtDialog.Add(obj))
       return(false);
@@ -2397,10 +2401,13 @@ bool CAppWindowSelTradingTool::ChkOnMouse(double x, double y, string sparam){
         {
          hidx = (x - m_menu_popup_panel.Left()) / MENU_PANEL_EDIT_WIDTH;
          vidx = (y - m_menu_popup_panel.Top()) / MENU_EDIT_HEIGHT;
-         idx = hidx * SYMBOL_MENU_COL_ITEM_COUNT + vidx;
-         if (idx < ArraySize(m_menu_popup_items))
+         if (vidx < SYMBOL_MENU_COL_ITEM_COUNT)
            {
-            m_menu_popup_items[idx].ColorBackground(symbol_menu_ColorSelected);   
+            idx = hidx * SYMBOL_MENU_COL_ITEM_COUNT + vidx;
+            if (idx < ArraySize(m_menu_popup_items))
+              {
+               m_menu_popup_items[idx].ColorBackground(symbol_menu_ColorSelected);   
+              }
            }
         }
        
@@ -2438,11 +2445,14 @@ bool CAppWindowSelTradingTool::ChkOnMouse(double x, double y, string sparam){
         {
          hidx = (x - m_graph_popup_panel.Left()) / MENU_EDIT_WIDTH;
          vidx = (y - m_graph_popup_panel.Top()) / MENU_EDIT_HEIGHT;
-         idx = hidx * SYMBOL_MENU_COL_ITEM_COUNT + vidx;
-         if (idx < ArraySize(m_graph_popup_items))
+         if (vidx < SYMBOL_MENU_COL_ITEM_COUNT)
            {
-            m_graph_popup_items[idx].ColorBackground(symbol_menu_ColorSelected);   
-           }
+            idx = hidx * SYMBOL_MENU_COL_ITEM_COUNT + vidx;
+            if (idx < ArraySize(m_graph_popup_items))
+              {
+               m_graph_popup_items[idx].ColorBackground(symbol_menu_ColorSelected);   
+              }
+           }  
         }
        
        for (int i = 0; i < ArraySize(m_graph_popup_items); i++)
@@ -2470,6 +2480,32 @@ bool CAppWindowSelTradingTool::ChkOnMouse(double x, double y, string sparam){
    return(true);
 }
 
+bool CAppWindowSelTradingTool::ChkAxesOnPopupPanel(double x, double y)
+{
+   if (m_menu_popup_panel.IsVisible())
+     {         
+      if(m_menu_popup_panel.Left() <= x &&
+         m_menu_popup_panel.Left() + m_menu_popup_panel.Width() >= x &&
+         m_menu_popup_panel.Top() <= y &&
+         m_menu_popup_panel.Top() + m_menu_popup_panel.Height() >= y)
+        {
+         return(true);
+        }
+     }
+     
+   if (m_graph_popup_panel.IsVisible())
+     {
+      if(m_graph_popup_panel.Left() <= x && 
+         m_graph_popup_panel.Left() + m_graph_popup_panel.Width() >= x &&
+         m_graph_popup_panel.Top() <= y && 
+         m_graph_popup_panel.Top() + m_graph_popup_panel.Height() >= y)
+        {
+         return(true);
+        }
+     }
+        
+   return(false);    
+}
 //+------------------------------------------------------------------+
 //| Create the "Button1" button                                      |
 //+------------------------------------------------------------------+
@@ -2589,6 +2625,9 @@ bool CAppWindowSelTradingTool::CreateStopLimit(void)
 //+------------------------------------------------------------------+
 bool CAppWindowSelTradingTool::CreateInfo(void)
   {
+      HideAll(SYMBOL_MENU_NAME_PREFIX);
+      symbolMenuExpanded = false;
+         
       if(position_panel_set_flg==1){
          // 閉じる処理
          position_panel_set_flg=0;
@@ -2598,7 +2637,8 @@ bool CAppWindowSelTradingTool::CreateInfo(void)
             
          HideAll(GRAPH_NAME_PREFIX);
          m_graph_profitGraph.Destroy();   
-      }else{
+      
+      } else {         
          // 開く処理
          position_panel_set_flg=1;
          
@@ -4298,14 +4338,14 @@ void CAppWindowSelTradingTool::OnPositionMenuPercentMenu(void)
    if(m_position_menu_main_percent_input.IsVisible()){
       // tpsl設定をどかす
       m_position_menu_main_percent_label.Hide();
-      m_position_menu_main_percent_label.Move(-200, -200);
+      m_position_menu_main_percent_label.Move(-2000, -2000);
       m_position_menu_main_percent_input.Hide();
-      m_position_menu_main_percent_input.Move(-200, -200);
+      m_position_menu_main_percent_input.Move(-2000, -2000);
       m_position_menu_main_percent_exit.Hide();
-      m_position_menu_main_percent_exit.Move(-200, -200);
+      m_position_menu_main_percent_exit.Move(-2000, -2000);
       // サブパネルどかす
       m_position_menu_sub_panel.Hide();
-      m_position_menu_sub_panel.Move(-200, -200);
+      m_position_menu_sub_panel.Move(-2000, -2000);
       // 色を変える
       m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
       m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
@@ -4313,15 +4353,15 @@ void CAppWindowSelTradingTool::OnPositionMenuPercentMenu(void)
    }
    // tpsl設定をどかす
    m_position_menu_main_tp_label.Hide();
-   m_position_menu_main_tp_label.Move(-200, -200);
+   m_position_menu_main_tp_label.Move(-2000, -2000);
    m_position_menu_main_tpsl_tp_input.Hide();
-   m_position_menu_main_tpsl_tp_input.Move(-200, -200);
+   m_position_menu_main_tpsl_tp_input.Move(-2000, -2000);
    m_position_menu_main_sl_label.Hide();
-   m_position_menu_main_sl_label.Move(-200, -200);
+   m_position_menu_main_sl_label.Move(-2000, -2000);
    m_position_menu_main_tpsl_sl_input.Hide();
-   m_position_menu_main_tpsl_sl_input.Move(-200, -200);
+   m_position_menu_main_tpsl_sl_input.Move(-2000, -2000);
    m_position_menu_main_tpsl.Hide();
-   m_position_menu_main_tpsl.Move(-200, -200);
+   m_position_menu_main_tpsl.Move(-2000, -2000);
    // 色を変える
    m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_active_ColorBackground);
    m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
@@ -4355,18 +4395,18 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlMenu(void)
    if(m_position_menu_main_tpsl_tp_input.IsVisible()){
       // tpsl設定をどかす
       m_position_menu_main_tp_label.Hide();
-      m_position_menu_main_tp_label.Move(-200, -200);
+      m_position_menu_main_tp_label.Move(-2000, -2000);
       m_position_menu_main_tpsl_tp_input.Hide();
-      m_position_menu_main_tpsl_tp_input.Move(-200, -200);
+      m_position_menu_main_tpsl_tp_input.Move(-2000, -2000);
       m_position_menu_main_sl_label.Hide();
-      m_position_menu_main_sl_label.Move(-200, -200);
+      m_position_menu_main_sl_label.Move(-2000, -2000);
       m_position_menu_main_tpsl_sl_input.Hide();
-      m_position_menu_main_tpsl_sl_input.Move(-200, -200);
+      m_position_menu_main_tpsl_sl_input.Move(-2000, -2000);
       m_position_menu_main_tpsl.Hide();
-      m_position_menu_main_tpsl.Move(-200, -200);
+      m_position_menu_main_tpsl.Move(-2000, -2000);
       // サブパネルどかす
       m_position_menu_sub_panel.Hide();
-      m_position_menu_sub_panel.Move(-200, -200);
+      m_position_menu_sub_panel.Move(-2000, -2000);
       // 色を変える
       m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
       m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
@@ -4381,11 +4421,11 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlMenu(void)
    }
    // tpsl設定をどかす
    m_position_menu_main_percent_label.Hide();
-   m_position_menu_main_percent_label.Move(-200, -200);
+   m_position_menu_main_percent_label.Move(-2000, -2000);
    m_position_menu_main_percent_input.Hide();
-   m_position_menu_main_percent_input.Move(-200, -200);
+   m_position_menu_main_percent_input.Move(-2000, -2000);
    m_position_menu_main_percent_exit.Hide();
-   m_position_menu_main_percent_exit.Move(-200, -200);
+   m_position_menu_main_percent_exit.Move(-2000, -2000);
    // 色を変える
    m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_active_ColorBackground);
    m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
@@ -5738,6 +5778,8 @@ bool CAppWindowSelTradingTool::OnDialogDragProcess(void)
       ObjectSetInteger(ChartID(),"m_graph_pfGraphic",OBJPROP_YDISTANCE,y);
      }   
    
+   my_caption.Move(Left()+CAPTION_LEFT,Top()+CAPTION_TOP);
+   
    return(true);
 }
 //+------------------------------------------------------------------+
@@ -5755,6 +5797,7 @@ bool CAppWindowSelTradingTool::OnDialogDragEnd(void)
    //my_caption.Width(CAPTION_W);
    //my_caption.Top(CAPTION_TOP);
    //my_caption.Left(CAPTION_LEFT);
+   my_caption.Move(Left()+CAPTION_LEFT,Top()+CAPTION_TOP);
 
 //--- succeed
    return(true);
@@ -5968,7 +6011,12 @@ void OnChartEvent(const int id,         // event ID
        {
          Print(sparam, ", ", id); 
        }*/
-      ExtDialog.ChartEvent(id,lparam,dparam,sparam);
+      
+      if (!ExtDialog.ChkAxesOnPopupPanel(lparam, dparam))
+        {         
+         ExtDialog.ChartEvent(id,lparam,dparam,sparam);
+        }
+          
       // ポジションメニュー表示
       if(id == CHARTEVENT_OBJECT_CLICK && StringFind(sparam, POSITION_NAME_PREFIX + "_button_") == 0){
          ExtDialog.CreatePositionMenu(lparam, dparam, sparam);
@@ -5987,7 +6035,7 @@ void OnChartEvent(const int id,         // event ID
       }
       // ダイアログ再描き
       if(id == CHARTEVENT_OBJECT_CLICK && StringFind(sparam, "Caption") != -1){
-         if (!dialogMminimized) {         
+         if (!dialogMminimized) {
             ExtDialog.Hide();         
             ExtDialog.Show();
          }
