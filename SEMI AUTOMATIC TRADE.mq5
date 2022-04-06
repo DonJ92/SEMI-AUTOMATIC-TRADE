@@ -170,7 +170,12 @@
 #define HLINE_ENTRY_SHADOW_NAME           "line_entry_shadow_hline"
 #define RECTANGLE_TP_NAME                 "line_rectangle_tp_hline"
 #define RECTANGLE_SL_NAME                 "line_rectangle_sl_hline"
-#define LABEL_CANDLETIME_NAME             "line_candletime_label"
+
+#define SAT_NAME_PREFIX                   "sat_"
+
+#define LABEL_CANDLETIME_NAME             "sat_candletime_label"
+#define LABEL_MA_TPSL_INFO_NAME           "sat_label_tpsl_info"
+#define LABEL_TRAILINGSTOP_INFO_NAME      "sat_label_trailingstop_info"
 
 // 一時定数
 int DIALOG_MIN_H;
@@ -293,6 +298,7 @@ int POSITION_MENU_MAIN_HEIGHT;
 int POSITION_MENU_SUB_WIDTH;
 int POSITION_MENU_SUB_HEIGHT_01;
 int POSITION_MENU_SUB_HEIGHT_02;
+int POSITION_MENU_SUB_ROW_INDENT;
 int POSITION_MENU_SUB_COL_INDENT;
 int POSITION_MENU_SUB_LABEL_WIDTH;
 int POSITION_MENU_SUB_LABEL_HEIGHT;
@@ -464,6 +470,7 @@ int      ORG_POSITION_MENU_SUB_HEIGHT_01  = 60;                // ポジショ�
 int      ORG_POSITION_MENU_SUB_HEIGHT_02  = 90;                // ポジションメニューのサイズ（右パネルのTP,SL設定の時の高さ）
 int      ORG_POSITION_MENU_CLOSE_WIDTH    = 30;                // ポジションメニューのサイズ（閉じるボタン）
 int      ORG_POSITION_MENU_CLOSE_HEIGHT   = 30;                // ポジションメニューのサイズ（閉じるボタン）
+int      ORG_POSITION_MENU_SUB_ROW_INDENT     = 5;             // ポジションメニューのサイズ（右パネルのobject余白）
 int      ORG_POSITION_MENU_SUB_COL_INDENT     = 5;             // ポジションメニューのサイズ（右パネルのobject余白）
 int      ORG_POSITION_MENU_SUB_LABEL_WIDTH    = 50;            // ポジションメニューのサイズ（右パネルのTPSLラベルの横幅）
 int      ORG_POSITION_MENU_SUB_LABEL_HEIGHT   = 20;
@@ -537,9 +544,13 @@ enum ENUM_SWITCH
    ON,
    OFF
 };
-input bool horizon_label_flg = true; // 水平線右はずのラベル false=OFF、true=ON
-input ENUM_SWITCH mktorder_check_tpsl_flg = ON; // 成行注文時に水平線ボタンOFFで売買を許可する
-input bool  InpMAStopOnBarClose=false; // MA決済注文のブレイク判定を足確定まで待つ
+input bool           horizon_label_flg = true; // 水平線右はずのラベル false=OFF、true=ON
+input ENUM_SWITCH    mktorder_check_tpsl_flg = ON; // 成行注文時に水平線ボタンOFFで売買を許可する
+input bool           InpMAStopOnBarClose=false; // MA決済注文のブレイク判定を足確定まで待つ
+input int            InpMATPSLInfo_FontSize=10;
+input color          InpMATPSLInfo_FontColor=clrRed;
+input int            InpTrailingStopInfo_FontSize=10;
+input color          InpTrailingStopInfo_FontColor=clrRed;
 
 int calc_timer_ms = 150; // ツールの全ての再計算をするタイマー間隔（ミリ秒）
 
@@ -608,6 +619,7 @@ struct CPositionMAStopSet
   {
    CPositionMAStopSet()
       : ticket(-1)
+      , timeframe(0)
       , maTpFlg(false)
       , maTpPeriod(0)
       , maTpMethod(0)
@@ -617,6 +629,7 @@ struct CPositionMAStopSet
      {}
      
    ulong             ticket;
+   ENUM_TIMEFRAMES   timeframe;
    bool              maTpFlg;
    int               maTpPeriod;
    ENUM_MA_METHOD    maTpMethod;
@@ -627,6 +640,9 @@ struct CPositionMAStopSet
 
 CPositionTrailingStopSet   _positionTrailingStopSets[];
 CPositionMAStopSet         _positionMAStopSets[];
+
+string                     _fileName_positionMAStopSets="SAT_positionMAStopSets";
+string                     _fileName_positionTrailingStopSets="SAT_positionTrailingStopSets";
 
 MqlTick latest_price;     // To be used for getting recent/latest price quotes
 // copybuffer
@@ -868,30 +884,30 @@ private:
    CPanel            m_position_menu_sub_panel;
    CPanel            m_position_menu_main_exit_panel;
    CPanel            m_position_menu_main_doten_panel;
-   CPanel            m_position_menu_main_percent_exit_menu_panel;
+   CPanel            m_position_menu_main_percent_exit_panel;
    CPanel            m_position_menu_main_sltatene_panel;
-   CPanel            m_position_menu_main_trailingstop_menu_panel;
-   CPanel            m_position_menu_main_tpsl_menu_panel;
-   CPanel            m_position_menu_main_ma_tpsl_menu_panel;
+   CPanel            m_position_menu_main_trailingstop_panel;
+   CPanel            m_position_menu_main_tpsl_panel;
+   CPanel            m_position_menu_main_ma_tpsl_panel;
    CButton           m_position_menu_main_close;
    CLabel            m_position_menu_main_exit;
    CLabel            m_position_menu_main_doten;
-   CLabel            m_position_menu_main_percent_exit_menu;
+   CLabel            m_position_menu_main_percent_exit;
    CLabel            m_position_menu_main_sltatene;
-   CLabel            m_position_menu_main_trailingstop_menu;
-   CLabel            m_position_menu_main_tpsl_menu;
-   CLabel            m_position_menu_main_ma_tpsl_menu;
-   CLabel            m_position_menu_main_percent_label;
-   CEdit             m_position_menu_main_percent_input;
-   CButton           m_position_menu_main_percent_exit;
+   CLabel            m_position_menu_main_trailingstop;
+   CLabel            m_position_menu_main_tpsl;
+   CLabel            m_position_menu_main_ma_tpsl;
+   CLabel            m_position_menu_sub_percent_label;
+   CEdit             m_position_menu_sub_percent_input;
+   CButton           m_position_menu_sub_percent_exit;
    CCheckBoxEx       m_position_menu_sub_trailingstop_chk;
    CEdit             m_position_menu_sub_trailingstop_targetpips;
    CButton           m_position_menu_sub_trailingstop_set;
-   CLabel            m_position_menu_main_tp_label;
-   CLabel            m_position_menu_main_sl_label;
-   CEdit             m_position_menu_main_tpsl_tp_input;
-   CEdit             m_position_menu_main_tpsl_sl_input;
-   CButton           m_position_menu_main_tpsl;
+   CLabel            m_position_menu_sub_tp_label;
+   CLabel            m_position_menu_sub_sl_label;
+   CEdit             m_position_menu_sub_tpsl_tp_input;
+   CEdit             m_position_menu_sub_tpsl_sl_input;
+   CButton           m_position_menu_sub_tpsl_set;
    CCheckBoxEx       m_position_menu_sub_ma_tp_chk;
    CCheckBoxEx       m_position_menu_sub_ma_sl_chk;
    CComboBox         m_position_menu_sub_ma_tp_method;
@@ -936,6 +952,8 @@ public:
    virtual bool      CreateCBitmap(CPanel &obj, string name, color border_color, color bg_color, int w, int h, int zorder);
    bool              CreateCCombobox(CComboBox &obj, string name, int w, int h);
    bool              CreateCCheckBox(CCheckBoxEx &obj, string name, string text, string font, int font_size, color font_color, int w, int h);
+   
+   bool              CreatePositionStopInfoObj();
    //--- chart event handler
    virtual bool      OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam);
    //--- tick event
@@ -966,12 +984,14 @@ public:
    virtual bool  CreateOrderObject(int tickt);
    virtual bool  DeletePositionObject(int tickt);
    virtual bool  DeletePositionTpObject(int tickt);
-   virtual bool  DeletePositionSlObject(int tickt);
+   virtual bool  DeletePositionSlObject(int tickt);   
    virtual bool  DeleteOrderObject(int tickt);
    virtual bool  MovePositionObject(int tickt);
    virtual bool  MovePositionTpObject(int tickt);
    virtual bool  MovePositionSlObject(int tickt);
    virtual bool  MoveOrderObject(int tickt);
+   virtual void  ShowPositionStopInfo(ulong tickt);
+   
    virtual bool  CreatePositionMenu(double x, double y, string sparam);
    virtual bool  RemovePositionTp(double x, double y, string sparam);
    virtual bool  RemovePositionSl(double x, double y, string sparam);
@@ -1043,13 +1063,13 @@ protected:
    void              OnPositionMenuClose(void);
    void              OnPositionMenuExit(void);
    void              OnPositionMenuDoten(void);
-   void              OnPositionMenuPercentMenu(void);
+   void              OnPositionMenuPercentExitMenu(void);
    void              OnPositionMenuSlTatene(void);
    void              OnPositionMenuTrailingStopMenu(void);
    void              OnPositionMenuTpSlMenu(void);
-   void              OnPositionMenuMATpSlMenu(void);
-   void              OnPositionMenuExitExec(void);
-   void              OnPositionMenuTpSlExec(void);
+   void              OnPositionMenuMATpSlMenu(bool forceExpand=false);
+   void              OnPositionMenuPercentExitExec(void);
+   void              OnPositionMenuTpSlSet(void);
    // void              OnPositionMenuCloseFocus(void);
    // void              OnPositionMenuExitFocus(void);
    // void              OnPositionMenuDotenFocus(void);
@@ -1073,6 +1093,11 @@ protected:
    void              OnClickGraphPeriodDay(void);
    void              OnClickGraphPeriodMonth(void);
    void              OnClickGraphPeriodYear(void);
+   
+   bool              LoadPositionMAStopSets();
+   bool              SavePositionMAStopSets();
+   bool              LoadPositionTrailingStopSets();
+   bool              SavePositionTrailingStopSets();
   };
 //+------------------------------------------------------------------+
 //| Event Handling                                                   |
@@ -1127,33 +1152,35 @@ ON_EVENT(ON_CLICK,m_common_risk_down,OnClickRiskDown)
 // ポジションメニュー
 ON_EVENT(ON_CLICK,m_position_menu_main_close,OnPositionMenuClose)
 ON_EVENT(ON_CLICK,m_position_menu_main_exit,OnPositionMenuExit)
-ON_EVENT(ON_CLICK,m_position_menu_main_doten,OnPositionMenuDoten)
-ON_EVENT(ON_CLICK,m_position_menu_main_percent_exit_menu,OnPositionMenuPercentMenu)
-ON_EVENT(ON_CLICK,m_position_menu_main_sltatene,OnPositionMenuSlTatene)
-ON_EVENT(ON_CLICK,m_position_menu_main_trailingstop_menu,OnPositionMenuTrailingStopMenu)
-ON_EVENT(ON_CLICK,m_position_menu_main_tpsl_menu,OnPositionMenuTpSlMenu)
-ON_EVENT(ON_CLICK,m_position_menu_main_ma_tpsl_menu,OnPositionMenuMATpSlMenu)
 ON_EVENT(ON_CLICK,m_position_menu_main_exit_panel,OnPositionMenuExit)
+ON_EVENT(ON_CLICK,m_position_menu_main_doten,OnPositionMenuDoten)
 ON_EVENT(ON_CLICK,m_position_menu_main_doten_panel,OnPositionMenuDoten)
-ON_EVENT(ON_CLICK,m_position_menu_main_percent_exit_menu_panel,OnPositionMenuPercentMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_percent_exit,OnPositionMenuPercentExitMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_percent_exit_panel,OnPositionMenuPercentExitMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_sltatene,OnPositionMenuSlTatene)
 ON_EVENT(ON_CLICK,m_position_menu_main_sltatene_panel,OnPositionMenuSlTatene)
-ON_EVENT(ON_CLICK,m_position_menu_main_tpsl_menu_panel,OnPositionMenuTpSlMenu)
-ON_EVENT(ON_CLICK,m_position_menu_main_percent_exit,OnPositionMenuExitExec)
-ON_EVENT(ON_CLICK,m_position_menu_main_tpsl,OnPositionMenuTpSlExec)
+ON_EVENT(ON_CLICK,m_position_menu_main_trailingstop,OnPositionMenuTrailingStopMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_trailingstop_panel,OnPositionMenuTrailingStopMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_tpsl,OnPositionMenuTpSlMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_tpsl_panel,OnPositionMenuTpSlMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_ma_tpsl,OnPositionMenuMATpSlMenu)
+ON_EVENT(ON_CLICK,m_position_menu_main_ma_tpsl_panel,OnPositionMenuMATpSlMenu)
+ON_EVENT(ON_CLICK,m_position_menu_sub_percent_exit,OnPositionMenuPercentExitExec)
+ON_EVENT(ON_CLICK,m_position_menu_sub_tpsl_set,OnPositionMenuTpSlSet)
+ON_EVENT(ON_CLICK,m_position_menu_sub_trailingstop_set,OnPositionMenuTrailingStopSet)
+ON_EVENT(ON_CLICK,m_position_menu_sub_ma_tpsl_set,OnPositionMenuMATpSlSet)
 // ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_close,OnPositionMenuCloseFocus)
 // ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_exit,OnPositionMenuExitFocus)
 // ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_doten,OnPositionMenuDotenFocus)
-// ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_percent_exit_menu,OnPositionMenuPercentMenuFocus)
+// ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_percent_exit,OnPositionMenuPercentMenuFocus)
 // ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_sltatene,OnPositionMenuSlTateneFocus)
-// ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_tpsl_menu,OnPositionMenuTpSlMenuFocus)
+// ON_EVENT(ON_MOUSE_FOCUS_SET,m_position_menu_main_tpsl,OnPositionMenuTpSlMenuFocus)
 // ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_close,OnPositionMenuCloseFocusOut)
 // ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_exit,OnPositionMenuExitFocusOut)
 // ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_doten,OnPositionMenuDotenFocusOut)
-// ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_percent_exit_menu,OnPositionMenuPercentMenuFocusOut)
+// ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_percent_exit,OnPositionMenuPercentMenuFocusOut)
 // ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_sltatene,OnPositionMenuSlTateneFocusOut)
-// ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_tpsl_menu,OnPositionMenuTpSlMenuFocusOut)
-ON_EVENT(ON_CLICK,m_position_menu_sub_trailingstop_set,OnPositionMenuTrailingStopSet)
-ON_EVENT(ON_CLICK,m_position_menu_sub_ma_tpsl_set,OnPositionMenuMATpSlSet)
+// ON_EVENT(ON_MOUSE_FOCUS_KILL,m_position_menu_main_tpsl,OnPositionMenuTpSlMenuFocusOut)
 
 ON_EVENT(ON_CLICK,m_graph_symbol,OnClickGraphSymbol)
 ON_EVENT(ON_CLICK,m_graph_pday_button,OnClickGraphPeriodDay)
@@ -1181,8 +1208,17 @@ CAppWindowSelTradingTool::~CAppWindowSelTradingTool(void)
 
 void CAppWindowSelTradingTool::Destroy(const int reason=0)
   {
+   //---
+   if(reason==REASON_CLOSE)
+     {
+      SavePositionMAStopSets();
+      SavePositionTrailingStopSets();
+     }
+   
+   //---
    m_graph_profitGraph.Destroy();
    
+   //---
    CAppDialog::Destroy(reason);
   }  
 //+------------------------------------------------------------------+
@@ -1238,6 +1274,9 @@ bool CAppWindowSelTradingTool::Create(const long chart,const string name,const i
    if(!InitObject())
       return(false);
       
+   if(!CreatePositionStopInfoObj())
+      return(false); 
+         
    if(ArraySize(position_tickets)>0){
       ArrayRemove(position_tickets, 0, ArraySize(position_tickets));
       ObjectsDeleteAll(
@@ -1321,9 +1360,19 @@ bool CAppWindowSelTradingTool::Create(const long chart,const string name,const i
       HideAll(GRAPH_NAME_PREFIX);
       m_graph_profitGraph.Destroy();      
    }
+//---
+   if(_eaFirstTimeAttached)
+     {
+      _eaFirstTimeAttached=false;
+      
+      //---
+      LoadPositionMAStopSets();
+      LoadPositionTrailingStopSets();
+     }   
 //--- succeed
    return(true);
   }
+  
 bool CAppWindowSelTradingTool::InitObject()
 {
    /**
@@ -1373,23 +1422,23 @@ bool CAppWindowSelTradingTool::InitObject()
       return false;
    if(!CreateCPanelBg(m_position_panel, "sub_position_panel", my_client_ColorBorder, my_client_ColorBackground, ExtDialog.Width(), ExtDialog.Height(), 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_panel, POSITION_MENU_NAME_PREFIX+"main_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT*5, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_panel, POSITION_MENU_NAME_PREFIX+"main_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT*7, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_sub_panel, POSITION_MENU_NAME_PREFIX+"sub_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_SUB_WIDTH, POSITION_MENU_SUB_HEIGHT_01, 9999))
+   if(!CreateCPanelBg(m_position_menu_sub_panel, POSITION_MENU_NAME_PREFIX+"sub_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_SUB_WIDTH, POSITION_MENU_SUB_HEIGHT_01, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_exit_panel, POSITION_MENU_NAME_PREFIX+"exit_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH-POSITION_MENU_CLOSE_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_exit_panel, POSITION_MENU_NAME_PREFIX+"main_menu_exit_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH-POSITION_MENU_CLOSE_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_doten_panel, POSITION_MENU_NAME_PREFIX+"doten_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_doten_panel, POSITION_MENU_NAME_PREFIX+"main_menu_doten_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_percent_exit_menu_panel, POSITION_MENU_NAME_PREFIX+"percent_exit_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_percent_exit_panel, POSITION_MENU_NAME_PREFIX+"main_menu_percent_exit_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_sltatene_panel, POSITION_MENU_NAME_PREFIX+"sltatene_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_sltatene_panel, POSITION_MENU_NAME_PREFIX+"main_menu_sltatene_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_trailingstop_menu_panel, POSITION_MENU_NAME_PREFIX+"trailingstop_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_trailingstop_panel, POSITION_MENU_NAME_PREFIX+"main_menu_trailingstop_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;   
-   if(!CreateCPanelBg(m_position_menu_main_tpsl_menu_panel, POSITION_MENU_NAME_PREFIX+"tpsl_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_tpsl_panel, POSITION_MENU_NAME_PREFIX+"main_menu_tpsl_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;    
-   if(!CreateCPanelBg(m_position_menu_main_ma_tpsl_menu_panel, POSITION_MENU_NAME_PREFIX+"ma_tpsl_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanelBg(m_position_menu_main_ma_tpsl_panel, POSITION_MENU_NAME_PREFIX+"main_menu_ma_tpsl_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;   
    if(!CreateCPanelBg(m_menu_popup_panel, SYMBOL_MENU_NAME_PREFIX+"panel", C'178,195,207', common_edit_ColorBackground, MENU_PANEL_EDIT_WIDTH * cols + 2, MENU_EDIT_HEIGHT * SYMBOL_MENU_COL_ITEM_COUNT + 2, 9999))
       return false;
@@ -1406,17 +1455,17 @@ bool CAppWindowSelTradingTool::InitObject()
       return false;
    if(!CreateCEdit(m_position_edit_percent, "sub_position_edit_percent", ExitPercent, main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_EDIT1_WIDTH, POSITION_EDIT1_HEIGHT, ALIGN_RIGHT))
       return false;
-   if(!CreateCEdit(m_position_menu_main_percent_input, POSITION_MENU_NAME_PREFIX+"percent_input", "", main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
+   if(!CreateCEdit(m_position_menu_sub_percent_input, POSITION_MENU_NAME_PREFIX+"sub_menu_percent_input", "", main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
       return false;
-   if(!CreateCEdit(m_position_menu_sub_trailingstop_targetpips, POSITION_MENU_NAME_PREFIX+"sub_trailingstop_targetpips", "", main_Font, common_FontSize, menu_Color, clrWhite, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
+   if(!CreateCEdit(m_position_menu_sub_trailingstop_targetpips, POSITION_MENU_NAME_PREFIX+"sub_menu_trailingstop_targetpips", "", main_Font, common_FontSize, menu_Color, clrWhite, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
       return false;   
-   if(!CreateCEdit(m_position_menu_main_tpsl_tp_input, POSITION_MENU_NAME_PREFIX+"tpsl_tp_input", "", main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
+   if(!CreateCEdit(m_position_menu_sub_tpsl_tp_input, POSITION_MENU_NAME_PREFIX+"sub_menu_tpsl_tp_input", "", main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
       return false;
-   if(!CreateCEdit(m_position_menu_main_tpsl_sl_input, POSITION_MENU_NAME_PREFIX+"tpsl_sl_input", "", main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
+   if(!CreateCEdit(m_position_menu_sub_tpsl_sl_input, POSITION_MENU_NAME_PREFIX+"sub_menu_tpsl_sl_input", "", main_Font, common_FontSize, common_Color, common_edit_ColorBackground, POSITION_MENU_SUB_EDIT_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
       return false;
-   if(!CreateCEdit(m_position_menu_sub_ma_tp_period, POSITION_MENU_NAME_PREFIX+"sub_ma_tp_period", "", main_Font, common_FontSize, menu_Color, clrWhite, POSITION_EDIT1_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
+   if(!CreateCEdit(m_position_menu_sub_ma_tp_period, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_tp_period", "", main_Font, common_FontSize, menu_Color, clrWhite, POSITION_EDIT1_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
       return false;
-   if(!CreateCEdit(m_position_menu_sub_ma_sl_period, POSITION_MENU_NAME_PREFIX+"sub_ma_sl_period", "", main_Font, common_FontSize, menu_Color, clrWhite, POSITION_EDIT1_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
+   if(!CreateCEdit(m_position_menu_sub_ma_sl_period, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_sl_period", "", main_Font, common_FontSize, menu_Color, clrWhite, POSITION_EDIT1_WIDTH, POSITION_MENU_SUB_EDIT_HEIGHT, ALIGN_RIGHT))
       return false;
       
    ArrayResize(m_graph_popup_items, _mkt_symbols_total + 1, 100);
@@ -1494,15 +1543,15 @@ bool CAppWindowSelTradingTool::InitObject()
    if(!CreateCButton(m_position_button_percent_up_10, "sub_position_button_percent_up_10", "+10", main_Font, common_FontSize, menu_Color, menu_ColorBackground, C'178,195,207', POSITION_BUTTON4_WIDTH, POSITION_BUTTON4_HEIGHT, ALIGN_CENTER))
       return false;
 
-   if(!CreateCButton(m_position_menu_main_close, POSITION_MENU_NAME_PREFIX+"menu_main_close", "×", main_Font, common_FontSize, menu_Color, position_menu_close_ColorBackground, position_menu_close_ColorBorder, POSITION_MENU_CLOSE_WIDTH, POSITION_MENU_CLOSE_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_position_menu_main_close, POSITION_MENU_NAME_PREFIX+"main_menu_close", "×", main_Font, common_FontSize, menu_Color, position_menu_close_ColorBackground, position_menu_close_ColorBorder, POSITION_MENU_CLOSE_WIDTH, POSITION_MENU_CLOSE_HEIGHT, ALIGN_CENTER))
       return false;
-   if(!CreateCButton(m_position_menu_main_percent_exit, POSITION_MENU_NAME_PREFIX+"menu_main_percent_exit", "決済", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_position_menu_sub_percent_exit, POSITION_MENU_NAME_PREFIX+"sub_menu_percent_exit", "決済", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;
-   if(!CreateCButton(m_position_menu_sub_trailingstop_set, POSITION_MENU_NAME_PREFIX+"sub_trailingstop_set", "設定", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_position_menu_sub_trailingstop_set, POSITION_MENU_NAME_PREFIX+"sub_menu_trailingstop_set", "設定", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;   
-   if(!CreateCButton(m_position_menu_main_tpsl, POSITION_MENU_NAME_PREFIX+"menu_main_tpsl", "設定", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_position_menu_sub_tpsl_set, POSITION_MENU_NAME_PREFIX+"sub_menu_tpsl_set", "設定", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;
-   if(!CreateCButton(m_position_menu_sub_ma_tpsl_set, POSITION_MENU_NAME_PREFIX+"sub_ma_tpsl_set", "設定", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
+   if(!CreateCButton(m_position_menu_sub_ma_tpsl_set, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_tpsl_set", "設定", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
       return false;    
    
    if(!CreateCButton(m_graph_pday_button, GRAPH_NAME_PREFIX+"period_day", "日次", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, C'178,195,207', POSITION_MENU_SUB_BUTTON_WIDTH, POSITION_MENU_SUB_BUTTON_HEIGHT, ALIGN_CENTER))
@@ -1597,25 +1646,25 @@ bool CAppWindowSelTradingTool::InitObject()
    if(!CreateCLabel(m_position_label_percent, "sub_position_label_percent", "一括決済(％)", main_Font, common_FontSize, common_Color, "", POSITION_LABEL_COL1_WIDTH, POSITION_LABEL_HEIGHT, ANCHOR_LEFT))
       return false;
 
-   if(!CreateCLabel(m_position_menu_main_exit, POSITION_MENU_NAME_PREFIX+"menu_main_exit", "", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH-POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_exit, POSITION_MENU_NAME_PREFIX+"main_menu_exit", "", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH-POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;
-   if(!CreateCLabel(m_position_menu_main_doten, POSITION_MENU_NAME_PREFIX+"menu_main_doten", "　ドテン", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_doten, POSITION_MENU_NAME_PREFIX+"main_menu_doten", "　ドテン", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;
-   if(!CreateCLabel(m_position_menu_main_percent_exit_menu, POSITION_MENU_NAME_PREFIX+"menu_main_percent_exit_menu", "　分割決済 　　　　　＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_percent_exit, POSITION_MENU_NAME_PREFIX+"main_menu_percent_exit", "　分割決済 　　　　　＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;
-   if(!CreateCLabel(m_position_menu_main_sltatene, POSITION_MENU_NAME_PREFIX+"menu_main_sltatene", "　SL建値", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_sltatene, POSITION_MENU_NAME_PREFIX+"main_menu_sltatene", "　SL建値", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;
-   if(!CreateCLabel(m_position_menu_main_trailingstop_menu, POSITION_MENU_NAME_PREFIX+"menu_main_trailingstop_menu", "　自動SL建値　　　   ＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_trailingstop, POSITION_MENU_NAME_PREFIX+"main_menu_trailingstop", "　自動SL建値　　　   ＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;    
-   if(!CreateCLabel(m_position_menu_main_tpsl_menu, POSITION_MENU_NAME_PREFIX+"menu_main_tpsl_menu", "　TP/SL編集　　　　＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_tpsl, POSITION_MENU_NAME_PREFIX+"main_menu_tpsl", "　TP/SL編集　　　　＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;
-   if(!CreateCLabel(m_position_menu_main_ma_tpsl_menu, POSITION_MENU_NAME_PREFIX+"menu_main_ma_tpsl_menu", "　TP/SL (MA) 　　　＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_main_ma_tpsl, POSITION_MENU_NAME_PREFIX+"main_menu_ma_tpsl", "　TP/SL (MA) 　　　＞", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT/2, ANCHOR_LEFT_UPPER))
       return false;   
-   if(!CreateCLabel(m_position_menu_main_percent_label, POSITION_MENU_NAME_PREFIX+"menu_main_percent_label", "分割決済　％", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_SUB_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_sub_percent_label, POSITION_MENU_NAME_PREFIX+"sub_menu_percent_label", "分割決済　％", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_SUB_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
       return false;   
-   if(!CreateCLabel(m_position_menu_main_tp_label, POSITION_MENU_NAME_PREFIX+"menu_main_tp_label", "TP", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_sub_tp_label, POSITION_MENU_NAME_PREFIX+"sub_menu_tp_label", "TP", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
       return false;
-   if(!CreateCLabel(m_position_menu_main_sl_label, POSITION_MENU_NAME_PREFIX+"menu_main_sl_label", "SL", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
+   if(!CreateCLabel(m_position_menu_sub_sl_label, POSITION_MENU_NAME_PREFIX+"sub_menu_sl_label", "SL", main_Font, common_FontSize, menu_Color, position_menu_ColorBackground, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_MAIN_HEIGHT, ANCHOR_LEFT_UPPER))
       return false; 
    
    if(!CreateCLabel(m_graph_totalProfit_label, GRAPH_NAME_PREFIX+"totalProfit_label", GRAPH_LABEL_TRADES_PREFIX, main_Font, graph_ProfitFontSize, menu_Color, graph_panel_ColorBackground, MENU_EDIT_WIDTH, COMMON_LABEL_HEIGHT, ANCHOR_CENTER))
@@ -1634,14 +1683,14 @@ bool CAppWindowSelTradingTool::InitObject()
    /**
     * CComboBox
     */   
-   if(!CreateCCombobox(m_position_menu_sub_ma_tp_method, POSITION_MENU_NAME_PREFIX+"sub_ma_tpsl_tp_method", 60, POSITION_MENU_SUB_LABEL_HEIGHT))
+   if(!CreateCCombobox(m_position_menu_sub_ma_tp_method, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_tpsl_tp_method", 60, POSITION_MENU_SUB_LABEL_HEIGHT))
       return false;
    m_position_menu_sub_ma_tp_method.ItemAdd("SMA",MODE_SMA);
    m_position_menu_sub_ma_tp_method.ItemAdd("EMA",MODE_EMA);
    m_position_menu_sub_ma_tp_method.ItemAdd("SMMA",MODE_SMMA);
    m_position_menu_sub_ma_tp_method.ItemAdd("LWMA",MODE_LWMA);
    m_position_menu_sub_ma_tp_method.SelectByValue(MODE_SMA);
-   if(!CreateCCombobox(m_position_menu_sub_ma_sl_method, POSITION_MENU_NAME_PREFIX+"sub_ma_tpsl_sl_method", 60, POSITION_MENU_SUB_LABEL_HEIGHT))
+   if(!CreateCCombobox(m_position_menu_sub_ma_sl_method, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_tpsl_sl_method", 60, POSITION_MENU_SUB_LABEL_HEIGHT))
       return false;
    m_position_menu_sub_ma_sl_method.ItemAdd("SMA",MODE_SMA);
    m_position_menu_sub_ma_sl_method.ItemAdd("EMA",MODE_EMA);
@@ -1652,11 +1701,11 @@ bool CAppWindowSelTradingTool::InitObject()
    /**
     * CCheckBox
     */
-   if(!CreateCCheckBox(m_position_menu_sub_trailingstop_chk, POSITION_MENU_NAME_PREFIX+"sub_trailingstop_chk", "自動SL建値(Pips)", main_Font, common_FontSize, menu_Color,POSITION_MENU_SUB_WIDTH-10, POSITION_MENU_SUB_LABEL_HEIGHT))
+   if(!CreateCCheckBox(m_position_menu_sub_trailingstop_chk, POSITION_MENU_NAME_PREFIX+"sub_menu_trailingstop_chk", "自動SL建値(Pips)", main_Font, common_FontSize, menu_Color,POSITION_MENU_SUB_WIDTH-10, POSITION_MENU_SUB_LABEL_HEIGHT))
       return false; 
-   if(!CreateCCheckBox(m_position_menu_sub_ma_tp_chk, POSITION_MENU_NAME_PREFIX+"sub_ma_tpsl_tp_chk", "TP", main_Font, common_FontSize, menu_Color, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_SUB_LABEL_HEIGHT))
+   if(!CreateCCheckBox(m_position_menu_sub_ma_tp_chk, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_tpsl_tp_chk", "TP", main_Font, common_FontSize, menu_Color, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_SUB_LABEL_HEIGHT))
       return false;
-   if(!CreateCCheckBox(m_position_menu_sub_ma_sl_chk, POSITION_MENU_NAME_PREFIX+"sub_ma_tpsl_sl_chk", "SL", main_Font, common_FontSize, menu_Color, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_SUB_LABEL_HEIGHT))
+   if(!CreateCCheckBox(m_position_menu_sub_ma_sl_chk, POSITION_MENU_NAME_PREFIX+"sub_menu_ma_tpsl_sl_chk", "SL", main_Font, common_FontSize, menu_Color, POSITION_MENU_SUB_LABEL_WIDTH, POSITION_MENU_SUB_LABEL_HEIGHT))
       return false;              
       
    /**
@@ -1672,6 +1721,42 @@ bool CAppWindowSelTradingTool::InitObject()
 
 }
 
+bool CAppWindowSelTradingTool::CreatePositionStopInfoObj(void)
+  {
+   if(ObjectFind(0,LABEL_MA_TPSL_INFO_NAME)<0)
+     {
+      if(!ObjectCreate(0,LABEL_MA_TPSL_INFO_NAME,OBJ_LABEL,0,0,0))
+         return(false);
+     }
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_XDISTANCE,8);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_YDISTANCE,-100);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_ALIGN,ALIGN_RIGHT);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_FONTSIZE,InpMATPSLInfo_FontSize);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_COLOR,InpMATPSLInfo_FontColor);
+   ObjectSetString(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TEXT," ");
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_ALL_PERIODS);
+     
+   if(ObjectFind(0,LABEL_TRAILINGSTOP_INFO_NAME)<0)
+     {
+      if(!ObjectCreate(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJ_LABEL,0,0,0))
+         return(false);
+     }  
+   
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_XDISTANCE,8);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_YDISTANCE,-100);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_ALIGN,ALIGN_RIGHT);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_FONTSIZE,InpTrailingStopInfo_FontSize);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_COLOR,InpTrailingStopInfo_FontColor);
+   ObjectSetString(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TEXT," ");
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_ALL_PERIODS);
+     
+   return(true);
+  }  
+  
 bool CAppWindowSelTradingTool::CreateCButton(CButton &obj, string name, string text, string font, int font_size, color font_color, color bg_color, color border_color, int w, int h, ENUM_ALIGN_MODE align)
 {
    if(!obj.Create(0,name,0,
@@ -2298,6 +2383,8 @@ bool CAppWindowSelTradingTool::CreatePositionMenu(double x, double y, string spa
    ){
       // ボタンの色を戻す
       ObjectSetInteger(0, sparam, OBJPROP_BGCOLOR, position_line_button_color);
+      ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+      ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
       HideAll(POSITION_MENU_NAME_PREFIX);
       return true;
    }else if(StringToInteger(tmp_ticket) != open_menu_position_ticket){
@@ -2313,20 +2400,21 @@ bool CAppWindowSelTradingTool::CreatePositionMenu(double x, double y, string spa
    // Print("x=", x, " y=", y);
 
    // 色を変える
-   m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_trailingstop_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_percent_exit_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_trailingstop_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_tpsl_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_ma_tpsl_panel.ColorBorder(position_menu_ColorBorder);
    // メニューを表示する
+   x=(int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS)-(int)ObjectGetInteger(0,sparam,OBJPROP_XDISTANCE)+POSITION_LABEL1_WIDTH;
+   y=(int)ObjectGetInteger(0,sparam,OBJPROP_YDISTANCE)+POSITION_BUTTON2_WIDTH;
    int height = ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
    if(y + m_position_menu_main_panel.Height() > height)
-      y = height - m_position_menu_main_panel.Height();
-   //x = x - POSITION_MENU_MAIN_WIDTH - POSITION_MENU_SUB_WIDTH - POSITION_LABEL1_WIDTH;
-   x += POSITION_LABEL1_WIDTH / 3;
+      y = (int)ObjectGetInteger(0,sparam,OBJPROP_YDISTANCE)-m_position_menu_main_panel.Height();
+   //x = x - POSITION_MENU_MAIN_WIDTH - POSITION_MENU_SUB_WIDTH - POSITION_LABEL1_WIDTH;   
    // パネル
    m_position_menu_main_panel.Move(x, y);
    m_position_menu_main_panel.Show();
@@ -2343,30 +2431,33 @@ bool CAppWindowSelTradingTool::CreatePositionMenu(double x, double y, string spa
    m_position_menu_main_doten.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
    m_position_menu_main_doten.Show();
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_percent_exit_menu_panel.Move(x, y);
-   m_position_menu_main_percent_exit_menu_panel.Show();
-   m_position_menu_main_percent_exit_menu.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_percent_exit_menu.Show();
+   m_position_menu_main_percent_exit_panel.Move(x, y);
+   m_position_menu_main_percent_exit_panel.Show();
+   m_position_menu_main_percent_exit.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_main_percent_exit.Show();
    y+=POSITION_MENU_MAIN_HEIGHT;
    m_position_menu_main_sltatene_panel.Move(x, y);
    m_position_menu_main_sltatene_panel.Show();
    m_position_menu_main_sltatene.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
    m_position_menu_main_sltatene.Show();
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_trailingstop_menu_panel.Move(x, y);
-   m_position_menu_main_trailingstop_menu_panel.Show();
-   m_position_menu_main_trailingstop_menu.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_trailingstop_menu.Show();
+   m_position_menu_main_trailingstop_panel.Move(x, y);
+   m_position_menu_main_trailingstop_panel.Show();
+   m_position_menu_main_trailingstop.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_main_trailingstop.Show();
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_tpsl_menu_panel.Move(x, y);
-   m_position_menu_main_tpsl_menu_panel.Show();
-   m_position_menu_main_tpsl_menu.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_tpsl_menu.Show();
+   m_position_menu_main_tpsl_panel.Move(x, y);
+   m_position_menu_main_tpsl_panel.Show();
+   m_position_menu_main_tpsl.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_main_tpsl.Show();
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_ma_tpsl_menu_panel.Move(x, y);
-   m_position_menu_main_ma_tpsl_menu_panel.Show();
-   m_position_menu_main_ma_tpsl_menu.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_ma_tpsl_menu.Show();
+   m_position_menu_main_ma_tpsl_panel.Move(x, y);
+   m_position_menu_main_ma_tpsl_panel.Show();
+   m_position_menu_main_ma_tpsl.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_main_ma_tpsl.Show();
+   
+   //---
+   ShowPositionStopInfo(open_menu_position_ticket);
 
    //--- succeed
    return(true);
@@ -2395,7 +2486,7 @@ bool CAppWindowSelTradingTool::RemovePositionTp(double x, double y, string spara
       PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
       //--- 変更できるかチェック
       if(!OrderCheck(request, chkresult)){
-         Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+         Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
          return (false);
       }
       //--- リクエストの送信
@@ -2435,7 +2526,7 @@ bool CAppWindowSelTradingTool::RemovePositionSl(double x, double y, string spara
       PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
       //--- 変更できるかチェック
       if(!OrderCheck(request, chkresult)){
-         Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+         Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
          return (false);
       }
       //--- リクエストの送信
@@ -2477,6 +2568,7 @@ bool CAppWindowSelTradingTool::RemoveOrder(double x, double y, string sparam){
    //--- succeed
    return(true);
 }
+  
 bool CAppWindowSelTradingTool::ChkOnMouse(double x, double y, string sparam){
    // Print("ChkOnMouse ", x, " ", y, " ", sparam);
 
@@ -2522,18 +2614,18 @@ bool CAppWindowSelTradingTool::ChkOnMouse(double x, double y, string sparam){
          m_position_menu_main_doten_panel.ColorBackground(position_menu_ColorBackground);
       }
       // %決済ボタン
-      if(!m_position_menu_main_percent_input.IsVisible()){
+      if(!m_position_menu_sub_percent_input.IsVisible()){
          if(
-            m_position_menu_main_percent_exit_menu_panel.Left() <= x && 
-            m_position_menu_main_percent_exit_menu_panel.Left() + m_position_menu_main_percent_exit_menu_panel.Width() >= x &&
-            m_position_menu_main_percent_exit_menu_panel.Top() <= y && 
-            m_position_menu_main_percent_exit_menu_panel.Top() + m_position_menu_main_percent_exit_menu_panel.Height() >= y
+            m_position_menu_main_percent_exit_panel.Left() <= x && 
+            m_position_menu_main_percent_exit_panel.Left() + m_position_menu_main_percent_exit_panel.Width() >= x &&
+            m_position_menu_main_percent_exit_panel.Top() <= y && 
+            m_position_menu_main_percent_exit_panel.Top() + m_position_menu_main_percent_exit_panel.Height() >= y
          ){
-            if(m_position_menu_main_percent_exit_menu_panel.ColorBackground() == position_menu_ColorBackground){
-               m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_active_ColorBackground);
+            if(m_position_menu_main_percent_exit_panel.ColorBackground() == position_menu_ColorBackground){
+               m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_active_ColorBackground);
             }
-         }else if(m_position_menu_main_percent_exit_menu_panel.ColorBackground() == position_menu_active_ColorBackground){
-            m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
+         }else if(m_position_menu_main_percent_exit_panel.ColorBackground() == position_menu_active_ColorBackground){
+            m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_ColorBackground);
          }
       }
       // SL建値ボタン
@@ -2552,46 +2644,46 @@ bool CAppWindowSelTradingTool::ChkOnMouse(double x, double y, string sparam){
       // 自動SL建値ボタン
       if(!m_position_menu_sub_trailingstop_targetpips.IsVisible()){
          if(
-            m_position_menu_main_trailingstop_menu_panel.Left() <= x && 
-            m_position_menu_main_trailingstop_menu_panel.Left() + m_position_menu_main_trailingstop_menu_panel.Width() >= x &&
-            m_position_menu_main_trailingstop_menu_panel.Top() <= y && 
-            m_position_menu_main_trailingstop_menu_panel.Top() + m_position_menu_main_trailingstop_menu_panel.Height() >= y
+            m_position_menu_main_trailingstop_panel.Left() <= x && 
+            m_position_menu_main_trailingstop_panel.Left() + m_position_menu_main_trailingstop_panel.Width() >= x &&
+            m_position_menu_main_trailingstop_panel.Top() <= y && 
+            m_position_menu_main_trailingstop_panel.Top() + m_position_menu_main_trailingstop_panel.Height() >= y
          ){
-            if(m_position_menu_main_trailingstop_menu_panel.ColorBackground() == position_menu_ColorBackground){
-               m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_active_ColorBackground);
+            if(m_position_menu_main_trailingstop_panel.ColorBackground() == position_menu_ColorBackground){
+               m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_active_ColorBackground);
             }
-         }else if(m_position_menu_main_trailingstop_menu_panel.ColorBackground() == position_menu_active_ColorBackground){
-            m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_ColorBackground);
+         }else if(m_position_menu_main_trailingstop_panel.ColorBackground() == position_menu_active_ColorBackground){
+            m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_ColorBackground);
          }
       }
       // TPSL設定ボタン
-      if(!m_position_menu_main_tpsl_tp_input.IsVisible()){
+      if(!m_position_menu_sub_tpsl_tp_input.IsVisible()){
          if(
-            m_position_menu_main_tpsl_menu_panel.Left() <= x && 
-            m_position_menu_main_tpsl_menu_panel.Left() + m_position_menu_main_tpsl_menu_panel.Width() >= x &&
-            m_position_menu_main_tpsl_menu_panel.Top() <= y && 
-            m_position_menu_main_tpsl_menu_panel.Top() + m_position_menu_main_tpsl_menu_panel.Height() >= y
+            m_position_menu_main_tpsl_panel.Left() <= x && 
+            m_position_menu_main_tpsl_panel.Left() + m_position_menu_main_tpsl_panel.Width() >= x &&
+            m_position_menu_main_tpsl_panel.Top() <= y && 
+            m_position_menu_main_tpsl_panel.Top() + m_position_menu_main_tpsl_panel.Height() >= y
          ){
-            if(m_position_menu_main_tpsl_menu_panel.ColorBackground() == position_menu_ColorBackground){
-               m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_active_ColorBackground);
+            if(m_position_menu_main_tpsl_panel.ColorBackground() == position_menu_ColorBackground){
+               m_position_menu_main_tpsl_panel.ColorBackground(position_menu_active_ColorBackground);
             }
-         }else if(m_position_menu_main_tpsl_menu_panel.ColorBackground() == position_menu_active_ColorBackground){
-            m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
+         }else if(m_position_menu_main_tpsl_panel.ColorBackground() == position_menu_active_ColorBackground){
+            m_position_menu_main_tpsl_panel.ColorBackground(position_menu_ColorBackground);
          }
       }
       // MA TPSL設定ボタン
       if(!m_position_menu_sub_ma_tp_period.IsVisible()){
          if(
-            m_position_menu_main_ma_tpsl_menu_panel.Left() <= x && 
-            m_position_menu_main_ma_tpsl_menu_panel.Left() + m_position_menu_main_ma_tpsl_menu_panel.Width() >= x &&
-            m_position_menu_main_ma_tpsl_menu_panel.Top() <= y && 
-            m_position_menu_main_ma_tpsl_menu_panel.Top() + m_position_menu_main_ma_tpsl_menu_panel.Height() >= y
+            m_position_menu_main_ma_tpsl_panel.Left() <= x && 
+            m_position_menu_main_ma_tpsl_panel.Left() + m_position_menu_main_ma_tpsl_panel.Width() >= x &&
+            m_position_menu_main_ma_tpsl_panel.Top() <= y && 
+            m_position_menu_main_ma_tpsl_panel.Top() + m_position_menu_main_ma_tpsl_panel.Height() >= y
          ){
-            if(m_position_menu_main_ma_tpsl_menu_panel.ColorBackground() == position_menu_ColorBackground){
-               m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_active_ColorBackground);
+            if(m_position_menu_main_ma_tpsl_panel.ColorBackground() == position_menu_ColorBackground){
+               m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_active_ColorBackground);
             }
-         }else if(m_position_menu_main_ma_tpsl_menu_panel.ColorBackground() == position_menu_active_ColorBackground){
-            m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
+         }else if(m_position_menu_main_ma_tpsl_panel.ColorBackground() == position_menu_active_ColorBackground){
+            m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_ColorBackground);
          }
       }   
    }
@@ -3465,6 +3557,8 @@ bool CAppWindowSelTradingTool::CreateAndUpdatePositionObjects(void)
          );
       }
       // ポジションメニューを削除する
+      ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+      ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
       HideAll(POSITION_MENU_NAME_PREFIX);
    }else{
       // 不要なobjectを削除する
@@ -3894,6 +3988,58 @@ bool CAppWindowSelTradingTool::MoveOrderObject(int tickt)
    return(true);
 }
 
+void CAppWindowSelTradingTool::ShowPositionStopInfo(ulong tickt)
+  {
+   bool maTpSlSet=false;   
+   bool trailingStopSet=false;
+   
+   for(int i=0;i<ArraySize(_positionMAStopSets);i++)
+     {
+      if(_positionMAStopSets[i].ticket==tickt)
+        {
+         string text="";
+         if(_positionMAStopSets[i].maTpFlg)
+           {
+            text+=tf2str(_positionMAStopSets[i].timeframe)+", TP MA"+IntegerToString(_positionMAStopSets[i].maTpPeriod)+" ON";
+           }
+         if(_positionMAStopSets[i].maSlFlg)
+           {
+            if(_positionMAStopSets[i].maTpFlg)
+               text+=", ";
+            else
+               text+=tf2str(_positionMAStopSets[i].timeframe)+", ";
+                  
+            text+="SL MA"+IntegerToString(_positionMAStopSets[i].maSlPeriod)+" ON";
+           }
+         if(_positionMAStopSets[i].maTpFlg ||
+            _positionMAStopSets[i].maSlFlg)
+           {  
+            ObjectSetString(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TEXT,text);
+            maTpSlSet=true;
+           }
+         break;
+        }
+     }
+   if(maTpSlSet)
+      ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_ALL_PERIODS);
+   else
+      ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   
+   ObjectSetString(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TEXT,"");
+   for(int i=0;i<ArraySize(_positionTrailingStopSets);i++)
+     {
+      if(_positionTrailingStopSets[i].ticket==tickt)
+        {
+         ObjectSetString(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TEXT,"自動SL建値 "+DoubleToString(_positionTrailingStopSets[i].targetPips,1)+"Pips ON");
+         trailingStopSet=true;
+         break;
+        }
+     } 
+   if(trailingStopSet)
+      ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_ALL_PERIODS);
+   else
+      ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+  }
 //+------------------------------------------------------------------+
 //| Destoroy the "Button1"                                             |
 //+------------------------------------------------------------------+
@@ -4412,13 +4558,13 @@ void CAppWindowSelTradingTool::OnClickPercentDown10(void)
 // void CAppWindowSelTradingTool::OnPositionMenuPercentMenuFocus(void)
 // {
 //    Print("OnPositionMenuPercentMenuFocus");
-//    m_position_menu_main_percent_exit_menu.ColorBackground(position_menu_active_ColorBackground);
+//    m_position_menu_main_percent_exit.ColorBackground(position_menu_active_ColorBackground);
 // }
 
 // void CAppWindowSelTradingTool::OnPositionMenuPercentMenuFocusOut(void)
 // {
 //    Print("OnPositionMenuPercentMenuFocusOut");
-//    m_position_menu_main_percent_exit_menu.ColorBackground(position_menu_ColorBackground);
+//    m_position_menu_main_percent_exit.ColorBackground(position_menu_ColorBackground);
 // }
 
 // void CAppWindowSelTradingTool::OnPositionMenuSlTateneFocus(void)
@@ -4436,19 +4582,21 @@ void CAppWindowSelTradingTool::OnClickPercentDown10(void)
 // void CAppWindowSelTradingTool::OnPositionMenuTpSlMenuFocus(void)
 // {
 //    Print("OnPositionMenuTpSlMenuFocus");
-//    m_position_menu_main_tpsl_menu.ColorBackground(position_menu_active_ColorBackground);
+//    m_position_menu_main_tpsl.ColorBackground(position_menu_active_ColorBackground);
 // }
 
 // void CAppWindowSelTradingTool::OnPositionMenuTpSlMenuFocusOut(void)
 // {
 //    Print("OnPositionMenuTpSlMenuFocusOut");
-//    m_position_menu_main_tpsl_menu.ColorBackground(position_menu_ColorBackground);
+//    m_position_menu_main_tpsl.ColorBackground(position_menu_ColorBackground);
 // }
 
 void CAppWindowSelTradingTool::OnPositionMenuClose(void)
 {
    Print("OnPositionMenuClose");
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + open_menu_position_ticket, OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
 }
 
@@ -4459,6 +4607,8 @@ void CAppWindowSelTradingTool::OnPositionMenuExit(void)
       m_trade.PositionClose(m_position.Ticket());
    CalcInfo();
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + open_menu_position_ticket, OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
 }
 
@@ -4501,6 +4651,8 @@ void CAppWindowSelTradingTool::OnPositionMenuDoten(void)
    }
    CalcInfo();
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + open_menu_position_ticket, OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
 }
 
@@ -4524,7 +4676,7 @@ void CAppWindowSelTradingTool::OnPositionMenuSlTatene(void)
       PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
       //--- 変更できるかチェック
       if(!OrderCheck(request, chkresult)){
-         Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+         Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
       }
       //--- リクエストの送信
       if(!OrderSend(request,result))
@@ -4534,27 +4686,29 @@ void CAppWindowSelTradingTool::OnPositionMenuSlTatene(void)
    }
    CalcInfo();
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + open_menu_position_ticket, OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
 }
 
-void CAppWindowSelTradingTool::OnPositionMenuPercentMenu(void)
+void CAppWindowSelTradingTool::OnPositionMenuPercentExitMenu(void)
 {
-   Print("OnPositionMenuPercentMenu");
+   Print("OnPositionMenuPercentExitMenu");
    // 既に開いていたら閉じる
-   if(m_position_menu_main_percent_input.IsVisible()){
+   if(m_position_menu_sub_percent_input.IsVisible()){
       // percent exit設定をどかす
-      m_position_menu_main_percent_label.Hide();
-      m_position_menu_main_percent_label.Move(-2000, -2000);
-      m_position_menu_main_percent_input.Hide();
-      m_position_menu_main_percent_input.Move(-2000, -2000);
-      m_position_menu_main_percent_exit.Hide();
-      m_position_menu_main_percent_exit.Move(-2000, -2000);
+      m_position_menu_sub_percent_label.Hide();
+      m_position_menu_sub_percent_label.Move(-2000, -2000);
+      m_position_menu_sub_percent_input.Hide();
+      m_position_menu_sub_percent_input.Move(-2000, -2000);
+      m_position_menu_sub_percent_exit.Hide();
+      m_position_menu_sub_percent_exit.Move(-2000, -2000);
       // サブパネルどかす
       m_position_menu_sub_panel.Hide();
       m_position_menu_sub_panel.Move(-2000, -2000);
       // 色を変える
-      m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
-      m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
+      m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_ColorBackground);
+      m_position_menu_main_percent_exit_panel.ColorBorder(position_menu_ColorBorder);
       return;
    }
    // ts設定をどかす
@@ -4565,16 +4719,16 @@ void CAppWindowSelTradingTool::OnPositionMenuPercentMenu(void)
    m_position_menu_sub_trailingstop_set.Hide();
    m_position_menu_sub_trailingstop_set.Move(-2000, -2000);
    // tpsl設定をどかす
-   m_position_menu_main_tp_label.Hide();
-   m_position_menu_main_tp_label.Move(-2000, -2000);
-   m_position_menu_main_tpsl_tp_input.Hide();
-   m_position_menu_main_tpsl_tp_input.Move(-2000, -2000);
-   m_position_menu_main_sl_label.Hide();
-   m_position_menu_main_sl_label.Move(-2000, -2000);
-   m_position_menu_main_tpsl_sl_input.Hide();
-   m_position_menu_main_tpsl_sl_input.Move(-2000, -2000);
-   m_position_menu_main_tpsl.Hide();
-   m_position_menu_main_tpsl.Move(-2000, -2000);
+   m_position_menu_sub_tp_label.Hide();
+   m_position_menu_sub_tp_label.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_tp_input.Hide();
+   m_position_menu_sub_tpsl_tp_input.Move(-2000, -2000);
+   m_position_menu_sub_sl_label.Hide();
+   m_position_menu_sub_sl_label.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_sl_input.Hide();
+   m_position_menu_sub_tpsl_sl_input.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_set.Hide();
+   m_position_menu_sub_tpsl_set.Move(-2000, -2000);
    // ma tpsl設定をどかす
    m_position_menu_sub_ma_tp_chk.Hide();
    m_position_menu_sub_ma_tp_chk.Move(-2000, -2000);
@@ -4592,33 +4746,33 @@ void CAppWindowSelTradingTool::OnPositionMenuPercentMenu(void)
    m_position_menu_sub_ma_tpsl_set.Hide();
    m_position_menu_sub_ma_tpsl_set.Move(-2000, -2000);
    // 色を変える
-   m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_active_ColorBackground);
-   m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_trailingstop_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_active_ColorBackground);
+   m_position_menu_main_percent_exit_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_trailingstop_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_tpsl_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_ma_tpsl_panel.ColorBorder(position_menu_ColorBorder);
    // ポジションサブパネルを開く
    int x, y;
-   x = m_position_menu_main_percent_exit_menu_panel.Right();
-   y = m_position_menu_main_percent_exit_menu_panel.Top();
+   x = m_position_menu_main_percent_exit_panel.Right();
+   y = m_position_menu_main_percent_exit_panel.Top();
    // パネル
    m_position_menu_sub_panel.Height(POSITION_MENU_SUB_HEIGHT_01);
    m_position_menu_sub_panel.Move(x, y);
    m_position_menu_sub_panel.Show();
    // 部品
    x+=POSITION_MENU_SUB_COL_INDENT;
-   m_position_menu_main_percent_label.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_percent_label.Show();
+   m_position_menu_sub_percent_label.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_sub_percent_label.Show();
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_percent_input.Text(100);
-   m_position_menu_main_percent_input.Move(x, y);
-   m_position_menu_main_percent_input.Show();
+   m_position_menu_sub_percent_input.Text(100);
+   m_position_menu_sub_percent_input.Move(x, y);
+   m_position_menu_sub_percent_input.Show();
    x+=POSITION_MENU_SUB_EDIT_WIDTH + POSITION_MENU_SUB_COL_INDENT;
-   m_position_menu_main_percent_exit.Move(x, y);
-   m_position_menu_main_percent_exit.Show();
+   m_position_menu_sub_percent_exit.Move(x, y);
+   m_position_menu_sub_percent_exit.Show();
 }
 
 void CAppWindowSelTradingTool::OnPositionMenuTrailingStopMenu(void)
@@ -4637,28 +4791,28 @@ void CAppWindowSelTradingTool::OnPositionMenuTrailingStopMenu(void)
       m_position_menu_sub_panel.Hide();
       m_position_menu_sub_panel.Move(-2000, -2000);
       // 色を変える
-      m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_ColorBackground);
-      m_position_menu_main_trailingstop_menu_panel.ColorBorder(position_menu_ColorBorder);
+      m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_ColorBackground);
+      m_position_menu_main_trailingstop_panel.ColorBorder(position_menu_ColorBorder);
       return;
    }
    // percent exit設定をどかす
-   m_position_menu_main_percent_label.Hide();
-   m_position_menu_main_percent_label.Move(-2000, -2000);
-   m_position_menu_main_percent_input.Hide();
-   m_position_menu_main_percent_input.Move(-2000, -2000);
-   m_position_menu_main_percent_exit.Hide();
-   m_position_menu_main_percent_exit.Move(-2000, -2000);
+   m_position_menu_sub_percent_label.Hide();
+   m_position_menu_sub_percent_label.Move(-2000, -2000);
+   m_position_menu_sub_percent_input.Hide();
+   m_position_menu_sub_percent_input.Move(-2000, -2000);
+   m_position_menu_sub_percent_exit.Hide();
+   m_position_menu_sub_percent_exit.Move(-2000, -2000);
    // tpsl設定をどかす
-   m_position_menu_main_tp_label.Hide();
-   m_position_menu_main_tp_label.Move(-2000, -2000);
-   m_position_menu_main_tpsl_tp_input.Hide();
-   m_position_menu_main_tpsl_tp_input.Move(-2000, -2000);
-   m_position_menu_main_sl_label.Hide();
-   m_position_menu_main_sl_label.Move(-2000, -2000);
-   m_position_menu_main_tpsl_sl_input.Hide();
-   m_position_menu_main_tpsl_sl_input.Move(-2000, -2000);
-   m_position_menu_main_tpsl.Hide();
-   m_position_menu_main_tpsl.Move(-2000, -2000);
+   m_position_menu_sub_tp_label.Hide();
+   m_position_menu_sub_tp_label.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_tp_input.Hide();
+   m_position_menu_sub_tpsl_tp_input.Move(-2000, -2000);
+   m_position_menu_sub_sl_label.Hide();
+   m_position_menu_sub_sl_label.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_sl_input.Hide();
+   m_position_menu_sub_tpsl_sl_input.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_set.Hide();
+   m_position_menu_sub_tpsl_set.Move(-2000, -2000);
    // ma tpsl設定をどかす
    m_position_menu_sub_ma_tp_chk.Hide();
    m_position_menu_sub_ma_tp_chk.Move(-2000, -2000);
@@ -4676,18 +4830,18 @@ void CAppWindowSelTradingTool::OnPositionMenuTrailingStopMenu(void)
    m_position_menu_sub_ma_tpsl_set.Hide();
    m_position_menu_sub_ma_tpsl_set.Move(-2000, -2000);
    // 色を変える
-   m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_active_ColorBackground);
-   m_position_menu_main_trailingstop_menu_panel.ColorBorder(position_menu_ColorBorder);   
-   m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_active_ColorBackground);
+   m_position_menu_main_trailingstop_panel.ColorBorder(position_menu_ColorBorder);   
+   m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_percent_exit_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_tpsl_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_ma_tpsl_panel.ColorBorder(position_menu_ColorBorder);
    // ポジションサブパネルを開く
    int x, y;
-   x = m_position_menu_main_trailingstop_menu_panel.Right();
-   y = m_position_menu_main_trailingstop_menu_panel.Top();
+   x = m_position_menu_main_trailingstop_panel.Right();
+   y = m_position_menu_main_trailingstop_panel.Top();
    // パネル
    m_position_menu_sub_panel.Height(POSITION_MENU_SUB_HEIGHT_01);
    m_position_menu_sub_panel.Move(x, y);
@@ -4721,24 +4875,24 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlMenu(void)
 {
    Print("OnPositionMenuTpSlMenu");
    // 既に開いていたら閉じる
-   if(m_position_menu_main_tpsl_tp_input.IsVisible()){
+   if(m_position_menu_sub_tpsl_tp_input.IsVisible()){
       // tpsl設定をどかす
-      m_position_menu_main_tp_label.Hide();
-      m_position_menu_main_tp_label.Move(-2000, -2000);
-      m_position_menu_main_tpsl_tp_input.Hide();
-      m_position_menu_main_tpsl_tp_input.Move(-2000, -2000);
-      m_position_menu_main_sl_label.Hide();
-      m_position_menu_main_sl_label.Move(-2000, -2000);
-      m_position_menu_main_tpsl_sl_input.Hide();
-      m_position_menu_main_tpsl_sl_input.Move(-2000, -2000);
-      m_position_menu_main_tpsl.Hide();
-      m_position_menu_main_tpsl.Move(-2000, -2000);
+      m_position_menu_sub_tp_label.Hide();
+      m_position_menu_sub_tp_label.Move(-2000, -2000);
+      m_position_menu_sub_tpsl_tp_input.Hide();
+      m_position_menu_sub_tpsl_tp_input.Move(-2000, -2000);
+      m_position_menu_sub_sl_label.Hide();
+      m_position_menu_sub_sl_label.Move(-2000, -2000);
+      m_position_menu_sub_tpsl_sl_input.Hide();
+      m_position_menu_sub_tpsl_sl_input.Move(-2000, -2000);
+      m_position_menu_sub_tpsl_set.Hide();
+      m_position_menu_sub_tpsl_set.Move(-2000, -2000);
       // サブパネルどかす
       m_position_menu_sub_panel.Hide();
       m_position_menu_sub_panel.Move(-2000, -2000);
       // 色を変える
-      m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-      m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
+      m_position_menu_main_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+      m_position_menu_main_tpsl_panel.ColorBorder(position_menu_ColorBorder);
       return;
    }
    string tp = 0;
@@ -4755,12 +4909,12 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlMenu(void)
    m_position_menu_sub_trailingstop_set.Hide();
    m_position_menu_sub_trailingstop_set.Move(-2000, -2000);
    // tpsl設定をどかす
-   m_position_menu_main_percent_label.Hide();
-   m_position_menu_main_percent_label.Move(-2000, -2000);
-   m_position_menu_main_percent_input.Hide();
-   m_position_menu_main_percent_input.Move(-2000, -2000);
-   m_position_menu_main_percent_exit.Hide();
-   m_position_menu_main_percent_exit.Move(-2000, -2000);
+   m_position_menu_sub_percent_label.Hide();
+   m_position_menu_sub_percent_label.Move(-2000, -2000);
+   m_position_menu_sub_percent_input.Hide();
+   m_position_menu_sub_percent_input.Move(-2000, -2000);
+   m_position_menu_sub_percent_exit.Hide();
+   m_position_menu_sub_percent_exit.Move(-2000, -2000);
    // ma tpsl設定をどかす
    m_position_menu_sub_ma_tp_chk.Hide();
    m_position_menu_sub_ma_tp_chk.Move(-2000, -2000);
@@ -4778,18 +4932,18 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlMenu(void)
    m_position_menu_sub_ma_tpsl_set.Hide();
    m_position_menu_sub_ma_tpsl_set.Move(-2000, -2000);
    // 色を変える
-   m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_active_ColorBackground);
-   m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_trailingstop_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);   
+   m_position_menu_main_tpsl_panel.ColorBackground(position_menu_active_ColorBackground);
+   m_position_menu_main_tpsl_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_percent_exit_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_trailingstop_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_ma_tpsl_panel.ColorBorder(position_menu_ColorBorder);   
    // ポジションサブパネルを開く
    int x, y, x_bk;
-   x = m_position_menu_main_tpsl_menu_panel.Right();
-   y = m_position_menu_main_tpsl_menu_panel.Top();
+   x = m_position_menu_main_tpsl_panel.Right();
+   y = m_position_menu_main_tpsl_panel.Top();
    // パネル
    m_position_menu_sub_panel.Height(POSITION_MENU_SUB_HEIGHT_02);
    int height = ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
@@ -4799,34 +4953,34 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlMenu(void)
    m_position_menu_sub_panel.Show();
    // 部品
    x+=POSITION_MENU_SUB_COL_INDENT;
-   m_position_menu_main_tp_label.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_tp_label.Show();
+   m_position_menu_sub_tp_label.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_sub_tp_label.Show();
    x_bk = x;
    x+=POSITION_MENU_SUB_LABEL_WIDTH + POSITION_MENU_SUB_COL_INDENT;
-   m_position_menu_main_tpsl_tp_input.Text(tp);
-   m_position_menu_main_tpsl_tp_input.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_tpsl_tp_input.Show();
+   m_position_menu_sub_tpsl_tp_input.Text(tp);
+   m_position_menu_sub_tpsl_tp_input.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_sub_tpsl_tp_input.Show();
    x = x_bk;
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_sl_label.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_sl_label.Show();
+   m_position_menu_sub_sl_label.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_sub_sl_label.Show();
    x_bk = x;
    x+=POSITION_MENU_SUB_LABEL_WIDTH + POSITION_MENU_SUB_COL_INDENT;
-   m_position_menu_main_tpsl_sl_input.Text(sl);
-   m_position_menu_main_tpsl_sl_input.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
-   m_position_menu_main_tpsl_sl_input.Show();
+   m_position_menu_sub_tpsl_sl_input.Text(sl);
+   m_position_menu_sub_tpsl_sl_input.Move(x, y + POSITION_MENU_MAIN_HEIGHT/4);
+   m_position_menu_sub_tpsl_sl_input.Show();
    x = x_bk;
    x+=POSITION_MENU_SUB_LABEL_WIDTH + POSITION_MENU_SUB_COL_INDENT;
    y+=POSITION_MENU_MAIN_HEIGHT;
-   m_position_menu_main_tpsl.Move(x, y);
-   m_position_menu_main_tpsl.Show();
+   m_position_menu_sub_tpsl_set.Move(x, y);
+   m_position_menu_sub_tpsl_set.Show();
 }
 
-void CAppWindowSelTradingTool::OnPositionMenuMATpSlMenu(void)
+void CAppWindowSelTradingTool::OnPositionMenuMATpSlMenu(bool forceExpand)
 {
    Print("OnPositionMenuMATpSlMenu");
    // 既に開いていたら閉じる
-   if(m_position_menu_sub_ma_tp_period.IsVisible()){
+   if(!forceExpand && m_position_menu_sub_ma_tp_period.IsVisible()){
       // tpsl設定をどかす
       m_position_menu_sub_ma_tp_chk.Hide();
       m_position_menu_sub_ma_tp_chk.Move(-2000, -2000);
@@ -4847,8 +5001,8 @@ void CAppWindowSelTradingTool::OnPositionMenuMATpSlMenu(void)
       m_position_menu_sub_panel.Hide();
       m_position_menu_sub_panel.Move(-2000, -2000);
       // 色を変える
-      m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-      m_position_menu_main_ma_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
+      m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+      m_position_menu_main_ma_tpsl_panel.ColorBorder(position_menu_ColorBorder);
       return;
    }
    string tpMAPeriod = "10";
@@ -4861,36 +5015,36 @@ void CAppWindowSelTradingTool::OnPositionMenuMATpSlMenu(void)
    m_position_menu_sub_trailingstop_set.Hide();
    m_position_menu_sub_trailingstop_set.Move(-2000, -2000);   
    // tpsl設定をどかす
-   m_position_menu_main_percent_label.Hide();
-   m_position_menu_main_percent_label.Move(-2000, -2000);
-   m_position_menu_main_percent_input.Hide();
-   m_position_menu_main_percent_input.Move(-2000, -2000);
-   m_position_menu_main_percent_exit.Hide();
-   m_position_menu_main_percent_exit.Move(-2000, -2000);
+   m_position_menu_sub_percent_label.Hide();
+   m_position_menu_sub_percent_label.Move(-2000, -2000);
+   m_position_menu_sub_percent_input.Hide();
+   m_position_menu_sub_percent_input.Move(-2000, -2000);
+   m_position_menu_sub_percent_exit.Hide();
+   m_position_menu_sub_percent_exit.Move(-2000, -2000);
    // ma tpsl設定をどかす
-   m_position_menu_main_tp_label.Hide();
-   m_position_menu_main_tp_label.Move(-2000, -2000);
-   m_position_menu_main_tpsl_tp_input.Hide();
-   m_position_menu_main_tpsl_tp_input.Move(-2000, -2000);
-   m_position_menu_main_sl_label.Hide();
-   m_position_menu_main_sl_label.Move(-2000, -2000);
-   m_position_menu_main_tpsl_sl_input.Hide();
-   m_position_menu_main_tpsl_sl_input.Move(-2000, -2000);
-   m_position_menu_main_tpsl.Hide();
-   m_position_menu_main_tpsl.Move(-2000, -2000);
+   m_position_menu_sub_tp_label.Hide();
+   m_position_menu_sub_tp_label.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_tp_input.Hide();
+   m_position_menu_sub_tpsl_tp_input.Move(-2000, -2000);
+   m_position_menu_sub_sl_label.Hide();
+   m_position_menu_sub_sl_label.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_sl_input.Hide();
+   m_position_menu_sub_tpsl_sl_input.Move(-2000, -2000);
+   m_position_menu_sub_tpsl_set.Hide();
+   m_position_menu_sub_tpsl_set.Move(-2000, -2000);
    // 色を変える
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBackground(position_menu_active_ColorBackground);
-   m_position_menu_main_ma_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_percent_exit_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_percent_exit_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_trailingstop_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_trailingstop_menu_panel.ColorBorder(position_menu_ColorBorder);
-   m_position_menu_main_tpsl_menu_panel.ColorBackground(position_menu_ColorBackground);
-   m_position_menu_main_tpsl_menu_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_ma_tpsl_panel.ColorBackground(position_menu_active_ColorBackground);
+   m_position_menu_main_ma_tpsl_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_percent_exit_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_percent_exit_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_trailingstop_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_trailingstop_panel.ColorBorder(position_menu_ColorBorder);
+   m_position_menu_main_tpsl_panel.ColorBackground(position_menu_ColorBackground);
+   m_position_menu_main_tpsl_panel.ColorBorder(position_menu_ColorBorder);
    // ポジションサブパネルを開く
    int x, y, x_bk;
-   x = m_position_menu_main_ma_tpsl_menu_panel.Right();
-   y = m_position_menu_main_ma_tpsl_menu_panel.Top();
+   x = m_position_menu_main_ma_tpsl_panel.Right();
+   y = m_position_menu_main_ma_tpsl_panel.Top();
    // パネル
    m_position_menu_sub_panel.Height(POSITION_MENU_SUB_HEIGHT_02);
    int height = (int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
@@ -4929,7 +5083,7 @@ void CAppWindowSelTradingTool::OnPositionMenuMATpSlMenu(void)
    m_position_menu_sub_ma_sl_period.Show();
    x = x_bk;
    x+=POSITION_MENU_SUB_LABEL_WIDTH + POSITION_MENU_SUB_COL_INDENT;
-   y+=POSITION_MENU_MAIN_HEIGHT;
+   y+=POSITION_MENU_MAIN_HEIGHT + POSITION_MENU_SUB_ROW_INDENT;
    m_position_menu_sub_ma_tpsl_set.Move(x, y);
    m_position_menu_sub_ma_tpsl_set.Show();
    
@@ -4955,12 +5109,12 @@ void CAppWindowSelTradingTool::OnPositionMenuMATpSlMenu(void)
      }
 }
 
-void CAppWindowSelTradingTool::OnPositionMenuExitExec(void)
+void CAppWindowSelTradingTool::OnPositionMenuPercentExitExec(void)
 {
-   Print("OnPositionMenuExitExec");
+   Print("OnPositionMenuPercentExitExec");
    if(m_position.SelectByTicket(open_menu_position_ticket)){ // selects the position by index for further access to its properties
       double volume = m_position.Volume();
-      double closeVolume = calcCloseLotToPercent(volume, StringToInteger(m_position_menu_main_percent_input.Text()));
+      double closeVolume = calcCloseLotToPercent(volume, StringToInteger(m_position_menu_sub_percent_input.Text()));
       if(volume <= closeVolume){
          m_trade.PositionClose(m_position.Ticket()); // close a position by the specified symbol
       }else{
@@ -4969,12 +5123,14 @@ void CAppWindowSelTradingTool::OnPositionMenuExitExec(void)
    }
    CalcInfo();
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + open_menu_position_ticket, OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
 }
 
-void CAppWindowSelTradingTool::OnPositionMenuTpSlExec(void)
+void CAppWindowSelTradingTool::OnPositionMenuTpSlSet(void)
 {
-   Print("OnPositionMenuTpSlExec");
+   Print("OnPositionMenuTpSlSet");
    if(m_position.SelectByTicket(open_menu_position_ticket)){ // selects the position by index for further access to its properties
       MqlTradeRequest request;
       MqlTradeResult  result;
@@ -4986,13 +5142,13 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlExec(void)
       request.action  =TRADE_ACTION_SLTP; // 取引操作タイプ
       request.position=m_position.Ticket();   // ポジションシンボル
       request.symbol=m_position.Symbol();     // シンボル
-      request.sl      =StringToDouble(m_position_menu_main_tpsl_sl_input.Text());               // ポジションのStop Loss
-      request.tp      =StringToDouble(m_position_menu_main_tpsl_tp_input.Text());               // ポジションのTake Profit
+      request.sl      =StringToDouble(m_position_menu_sub_tpsl_sl_input.Text());               // ポジションのStop Loss
+      request.tp      =StringToDouble(m_position_menu_sub_tpsl_tp_input.Text());               // ポジションのTake Profit
       //--- 変更情報の出力
       PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
       //--- 変更できるかチェック
       if(!OrderCheck(request, chkresult)){
-         Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+         Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
       }
       //--- リクエストの送信
       if(!OrderSend(request,result))
@@ -5018,6 +5174,8 @@ void CAppWindowSelTradingTool::OnPositionMenuTpSlExec(void)
    }
    CalcInfo();
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + open_menu_position_ticket, OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
 }
 
@@ -5084,18 +5242,19 @@ void CAppWindowSelTradingTool::OnPositionMenuTrailingStopSet(void)
      }
    
    ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + IntegerToString(open_menu_position_ticket), OBJPROP_BGCOLOR, position_line_button_color);
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
   }
    
 void CAppWindowSelTradingTool::OnPositionMenuMATpSlSet(void)
   {
-   ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + IntegerToString(open_menu_position_ticket), OBJPROP_BGCOLOR, position_line_button_color);
-   HideAll(POSITION_MENU_NAME_PREFIX);
+   bool ret_maTpSlSet=true;
    
    CPositionMAStopSet tmp;
    
    tmp.ticket=open_menu_position_ticket;
-   
+   tmp.timeframe=_Period;
    tmp.maTpFlg=m_position_menu_sub_ma_tp_chk.Checked();
    tmp.maTpPeriod=(int)StringToInteger(m_position_menu_sub_ma_tp_period.Text());
    tmp.maTpMethod=(ENUM_MA_METHOD)m_position_menu_sub_ma_tp_method.Value();
@@ -5103,43 +5262,117 @@ void CAppWindowSelTradingTool::OnPositionMenuMATpSlSet(void)
    tmp.maSlFlg=m_position_menu_sub_ma_sl_chk.Checked();
    tmp.maSlPeriod=(int)StringToInteger(m_position_menu_sub_ma_sl_period.Text());
    tmp.maSlMethod=(ENUM_MA_METHOD)m_position_menu_sub_ma_sl_method.Value();
-        
-   int positionMAStopSetsTotal=ArraySize(_positionMAStopSets);
    
-   int idx=-1;   
-   for(int i=0;i<positionMAStopSetsTotal;i++)
+   if(m_position.SelectByTicket(tmp.ticket))
      {
-      if(_positionMAStopSets[i].ticket==tmp.ticket)
+      if(tmp.maTpFlg)
         {
-         idx=i;
-         break;
-        }
-     }
-     
-   if(idx==-1)
-     {
-      positionMAStopSetsTotal++;
-      ArrayResize(_positionMAStopSets,positionMAStopSetsTotal,10);
-      
-      idx=positionMAStopSetsTotal-1;
-     }  
-     
-   _positionMAStopSets[idx]=tmp;
-   
-   if(_positionMAStopSets[idx].maTpFlg)
-      FirstOrCreateMAIndicator(_positionMAStopSets[idx].maTpPeriod,_positionMAStopSets[idx].maTpMethod);
-   if(_positionMAStopSets[idx].maSlFlg)
-      FirstOrCreateMAIndicator(_positionMAStopSets[idx].maSlPeriod,_positionMAStopSets[idx].maSlMethod);
-      
-   if(_positionMAStopSets[idx].maTpFlg || _positionMAStopSets[idx].maSlFlg)
-     {
-      if(m_position.SelectByTicket(open_menu_position_ticket))
-        {
-         if(m_position.TakeProfit()>0 || m_position.StopLoss()>0)
+         int handle=FirstOrCreateMAIndicator(tmp.timeframe,tmp.maTpPeriod,tmp.maTpMethod);
+         if(handle!=INVALID_HANDLE)
            {
-            m_trade.PositionModify(open_menu_position_ticket,(_positionMAStopSets[idx].maSlFlg?0:m_position.StopLoss()),(_positionMAStopSets[idx].maTpFlg?0:m_position.TakeProfit()));
+            double ma[1];
+                        
+            ResetLastError();
+            if(CopyBuffer(handle,0,0,1,ma)==1)
+              {
+               if((m_position.PositionType()==POSITION_TYPE_BUY && iClose(_Symbol,0,0)>=ma[0]) ||
+                  (m_position.PositionType()==POSITION_TYPE_SELL && iClose(_Symbol,0,0)<=ma[0]))
+                 {
+                  tmp.maTpFlg=false;
+                  ret_maTpSlSet=false;
+                 }
+              }
+            else  
+              {
+               //--- if the copying fails, tell the error code
+               PrintFormat("MA TP: Failed to copy data from the iMA indicator, error code %d",GetLastError());
+               tmp.maTpFlg=false;
+               ret_maTpSlSet=false;
+              }
            }
-        }        
+         else  
+           {
+            Print("MA TP: Invalid indicator handle!");
+            tmp.maTpFlg=false;
+            ret_maTpSlSet=false;
+           }
+        }
+      
+      if(tmp.maSlFlg)
+        {
+         int handle=FirstOrCreateMAIndicator(tmp.timeframe,tmp.maSlPeriod,tmp.maSlMethod);
+         if(handle!=INVALID_HANDLE)
+           {
+            double ma[1];
+                        
+            ResetLastError();
+            if(CopyBuffer(handle,0,0,1,ma)==1)
+              {
+               if((m_position.PositionType()==POSITION_TYPE_BUY && iClose(_Symbol,0,0)<=ma[0]) ||
+                  (m_position.PositionType()==POSITION_TYPE_SELL && iClose(_Symbol,0,0)>=ma[0]))
+                 {
+                  tmp.maSlFlg=false;
+                  ret_maTpSlSet=false;
+                 }
+              }
+            else  
+              {
+               //--- if the copying fails, tell the error code
+               PrintFormat("MA SL: Failed to copy data from the iMA indicator, error code %d",GetLastError());
+               tmp.maSlFlg=false;
+               ret_maTpSlSet=false;
+              }
+           }
+         else  
+           {
+            Print("MA SL: Invalid indicator handle!");
+            tmp.maSlFlg=false;
+            ret_maTpSlSet=false;
+           }
+        }
+      
+      int positionMAStopSetsTotal=ArraySize(_positionMAStopSets);
+   
+      int idx=-1;   
+      for(int i=0;i<positionMAStopSetsTotal;i++)
+        {
+         if(_positionMAStopSets[i].ticket==tmp.ticket)
+           {
+            idx=i;
+            break;
+           }
+        }
+        
+      if(idx==-1)
+        {
+         positionMAStopSetsTotal++;
+         ArrayResize(_positionMAStopSets,positionMAStopSetsTotal,10);
+         
+         idx=positionMAStopSetsTotal-1;
+        }
+        
+      _positionMAStopSets[idx]=tmp;
+      
+      if(ret_maTpSlSet)
+        {
+         if(m_position.SelectByTicket(open_menu_position_ticket))
+           {
+            if(m_position.TakeProfit()>0 || m_position.StopLoss()>0)
+              {
+               m_trade.PositionModify(open_menu_position_ticket,(_positionMAStopSets[idx].maSlFlg?0:m_position.StopLoss()),(_positionMAStopSets[idx].maTpFlg?0:m_position.TakeProfit()));
+              }
+           }        
+         
+         ObjectSetInteger(0, POSITION_NAME_PREFIX + "_button_" + IntegerToString(open_menu_position_ticket), OBJPROP_BGCOLOR, position_line_button_color);
+         ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+         ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+         HideAll(POSITION_MENU_NAME_PREFIX);  
+        }
+      else
+        {
+         ShowPositionStopInfo(open_menu_position_ticket);
+         OnPositionMenuMATpSlMenu(true);
+        }
      }
   }  
   
@@ -5171,7 +5404,7 @@ void CAppWindowSelTradingTool::OnClickInfoSellSlTatene(void)
             PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
             //--- 変更できるかチェック
             if(!OrderCheck(request, chkresult)){
-               Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+               Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
                continue ;
             }
             //--- リクエストの送信
@@ -5213,7 +5446,7 @@ void CAppWindowSelTradingTool::OnClickInfoSellTpDelete(void)
             PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
             //--- 変更できるかチェック
             if(!OrderCheck(request, chkresult)){
-               Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+               Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
                continue ;
             }
             //--- リクエストの送信
@@ -5273,7 +5506,7 @@ void CAppWindowSelTradingTool::OnClickInfoBuySlTatene(void)
             PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
             //--- 変更できるかチェック
             if(!OrderCheck(request, chkresult)){
-               Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+               Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
                continue ;
             }
             //--- リクエストの送信
@@ -5315,7 +5548,7 @@ void CAppWindowSelTradingTool::OnClickInfoBuyTpDelete(void)
             PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
             //--- 変更できるかチェック
             if(!OrderCheck(request, chkresult)){
-               Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+               Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
                continue ;
             }
             //--- リクエストの送信
@@ -5371,7 +5604,7 @@ void CAppWindowSelTradingTool::OnClickInfoAllSlTatene(void)
             PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
             //--- 変更できるかチェック
             if(!OrderCheck(request, chkresult)){
-               Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+               Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
                continue ;
             }
             //--- リクエストの送信
@@ -5413,7 +5646,7 @@ void CAppWindowSelTradingTool::OnClickInfoAllTpDelete(void)
             PrintFormat("Modify #%I64d %s %s",m_position.Ticket(),m_position.Symbol(),EnumToString(m_position.PositionType()));
             //--- 変更できるかチェック
             if(!OrderCheck(request, chkresult)){
-               Print("OrderCheck Error: ", result.retcode, " ", result.comment);
+               Print("OrderCheck Error: ", chkresult.retcode, " ", chkresult.comment);
                continue ;
             }
             //--- リクエストの送信
@@ -5552,6 +5785,8 @@ void CAppWindowSelTradingTool::Minimize(void){
    Print("Minimized: ", dialogMminimized);
    HideAll("m_");
    HideAll("sub_");
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
    HideAll(SYMBOL_MENU_NAME_PREFIX);
    HideAll(GRAPH_NAME_PREFIX);
@@ -5623,6 +5858,8 @@ void CAppWindowSelTradingTool::Maximize(void){
       m_graph_profitGraph.Destroy();
    }
    
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
    HideAll(SYMBOL_MENU_NAME_PREFIX);
 }
@@ -5668,6 +5905,20 @@ void CAppWindowSelTradingTool::OnTimer(void)
    ChkAlerm();
    
    ExtDialog.OnCalculateMAStop();
+   
+   //--- Adjust display info's position
+   ObjectSetString(0,LABEL_CANDLETIME_NAME,OBJPROP_TEXT,calcCandleTime());
+   
+   int candleTimeHeight=(int)ObjectGetInteger(0,LABEL_CANDLETIME_NAME,OBJPROP_YSIZE);
+   if(candleTimeHeight>0)
+     {
+      ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_YDISTANCE,ObjectGetInteger(0,LABEL_CANDLETIME_NAME,OBJPROP_YDISTANCE)+candleTimeHeight+10);
+     }     
+   int maTpSlInfoHeight=(int)ObjectGetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_YSIZE);
+   if(maTpSlInfoHeight>0)
+     {
+      ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_YDISTANCE,ObjectGetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_YDISTANCE)+maTpSlInfoHeight+10);
+     }
 }
 // void CAppWindowSelTradingTool::OnLineDrag(string sparam)
 // {
@@ -5731,6 +5982,8 @@ bool CAppWindowSelTradingTool::Show(void)
       HideAll(GRAPH_NAME_PREFIX);
       m_graph_profitGraph.Destroy();
    }
+   ObjectSetInteger(0,LABEL_MA_TPSL_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
+   ObjectSetInteger(0,LABEL_TRAILINGSTOP_INFO_NAME,OBJPROP_TIMEFRAMES,OBJ_NO_PERIODS);
    HideAll(POSITION_MENU_NAME_PREFIX);
    HideAll(SYMBOL_MENU_NAME_PREFIX);
    
@@ -6338,6 +6591,7 @@ void CalcDp()
    POSITION_MENU_SUB_WIDTH = ORG_POSITION_MENU_SUB_WIDTH * oringin_ratio;
    POSITION_MENU_SUB_HEIGHT_01 = ORG_POSITION_MENU_SUB_HEIGHT_01 * oringin_ratio;
    POSITION_MENU_SUB_HEIGHT_02 = ORG_POSITION_MENU_SUB_HEIGHT_02 * oringin_ratio;
+   POSITION_MENU_SUB_ROW_INDENT = ORG_POSITION_MENU_SUB_ROW_INDENT * oringin_ratio;
    POSITION_MENU_SUB_COL_INDENT = ORG_POSITION_MENU_SUB_COL_INDENT * oringin_ratio;
    POSITION_MENU_SUB_LABEL_WIDTH = ORG_POSITION_MENU_SUB_LABEL_WIDTH * oringin_ratio;
    POSITION_MENU_SUB_LABEL_HEIGHT = ORG_POSITION_MENU_SUB_LABEL_HEIGHT * oringin_ratio;
@@ -6440,14 +6694,14 @@ void CAppWindowSelTradingTool::OnCalculateMAStop()
           
       if(_positionMAStopSets[i].maTpFlg)
         {
-         int handle=FirstOrCreateMAIndicator(_positionMAStopSets[i].maTpPeriod,_positionMAStopSets[i].maTpMethod);
+         int handle=FirstOrCreateMAIndicator(_positionMAStopSets[i].timeframe,_positionMAStopSets[i].maTpPeriod,_positionMAStopSets[i].maTpMethod);
          if(handle!=INVALID_HANDLE)
            {
             double ma[2];
             double close[2];
             
-            close[0]=InpMAStopOnBarClose?iClose(_Symbol,0,1):iClose(_Symbol,0,0);
-            close[1]=InpMAStopOnBarClose?iClose(_Symbol,0,2):iClose(_Symbol,0,1);
+            close[0]=InpMAStopOnBarClose?iClose(_Symbol,_positionMAStopSets[i].timeframe,1):iClose(_Symbol,_positionMAStopSets[i].timeframe,0);
+            close[1]=InpMAStopOnBarClose?iClose(_Symbol,_positionMAStopSets[i].timeframe,2):iClose(_Symbol,_positionMAStopSets[i].timeframe,1);
             
             ResetLastError();
             if(CopyBuffer(handle,0,InpMAStopOnBarClose?1:0,2,ma)==2)
@@ -6472,14 +6726,14 @@ void CAppWindowSelTradingTool::OnCalculateMAStop()
       
       if(_positionMAStopSets[i].maSlFlg)
         {
-         int handle=FirstOrCreateMAIndicator(_positionMAStopSets[i].maSlPeriod,_positionMAStopSets[i].maSlMethod);
+         int handle=FirstOrCreateMAIndicator(_positionMAStopSets[i].timeframe,_positionMAStopSets[i].maSlPeriod,_positionMAStopSets[i].maSlMethod);
          if(handle!=INVALID_HANDLE)
            {
             double ma[2];
             double close[2];
             
-            close[0]=InpMAStopOnBarClose?iClose(_Symbol,0,1):iClose(_Symbol,0,0);
-            close[1]=InpMAStopOnBarClose?iClose(_Symbol,0,2):iClose(_Symbol,0,1);
+            close[0]=InpMAStopOnBarClose?iClose(_Symbol,_positionMAStopSets[i].timeframe,1):iClose(_Symbol,_positionMAStopSets[i].timeframe,0);
+            close[1]=InpMAStopOnBarClose?iClose(_Symbol,_positionMAStopSets[i].timeframe,2):iClose(_Symbol,_positionMAStopSets[i].timeframe,1);
             
             ResetLastError();
             if(CopyBuffer(handle,0,InpMAStopOnBarClose?1:0,2,ma)==2)
@@ -6538,22 +6792,173 @@ void CAppWindowSelTradingTool::OnCalculateTrailingStop(void)
         }
      }
   }  
+
+bool CAppWindowSelTradingTool::LoadPositionMAStopSets(void)
+  {
+   string fileName=_fileName_positionMAStopSets+"_"+IntegerToString(ChartID())+".csv";
+   
+   int fh = FileOpen(fileName, FILE_READ|FILE_ANSI|FILE_CSV, ',');
+   if (fh == INVALID_HANDLE)
+     {
+      PrintFormat("Failed to open %s file, Error code = %d",fileName,GetLastError()); 
+      return(false);
+     }
+     
+   int total=0;
+   
+   while(!FileIsEnding(fh))
+     {
+      if(IsStopped())   break;
+      
+      string symbol=FileReadString(fh);
+      ulong ticket=StringToInteger(FileReadString(fh));
+      ENUM_TIMEFRAMES timeframe=(ENUM_TIMEFRAMES)StringToInteger(FileReadString(fh));
+      bool maTpFlg=FileReadBool(fh);
+      int maTpPeriod=(int)StringToInteger(FileReadString(fh));
+      ENUM_MA_METHOD maTpMethod=(ENUM_MA_METHOD)StringToInteger(FileReadString(fh));
+      bool maSlFlg=FileReadBool(fh);
+      int maSlPeriod=(int)StringToInteger(FileReadString(fh));
+      ENUM_MA_METHOD maSlMethod=(ENUM_MA_METHOD)StringToInteger(FileReadString(fh));
+      
+      if(symbol!=_Symbol)
+         continue;
+
+      total++;
+
+      if(ArraySize(_positionMAStopSets)<total)
+         ArrayResize(_positionMAStopSets,total,10);
+                     
+      _positionMAStopSets[total-1].ticket=ticket;
+      _positionMAStopSets[total-1].timeframe=timeframe;
+      _positionMAStopSets[total-1].maTpFlg=maTpFlg;
+      _positionMAStopSets[total-1].maTpPeriod=maTpPeriod;
+      _positionMAStopSets[total-1].maTpMethod=maTpMethod;
+      _positionMAStopSets[total-1].maSlFlg=maSlFlg;
+      _positionMAStopSets[total-1].maSlPeriod=maSlPeriod;
+      _positionMAStopSets[total-1].maSlMethod=maSlMethod;
+     }
+     
+   ArrayResize(_positionMAStopSets,total,10);
+   
+   FileClose(fh);   
+   FileDelete(fileName);
+   //---
+   return(true);
+  }
+  
+bool CAppWindowSelTradingTool::SavePositionMAStopSets(void)
+  {
+   string fileName=_fileName_positionMAStopSets+"_"+IntegerToString(ChartID())+".csv";
+   
+   int fh = FileOpen(fileName, FILE_WRITE|FILE_ANSI|FILE_CSV, ',');
+   if (fh == INVALID_HANDLE)
+     {
+      PrintFormat("Failed to open %s file, Error code = %d",fileName,GetLastError()); 
+      return(false);
+     }
+     
+   for(int i=0;i<ArraySize(_positionMAStopSets);i++)
+     {
+      ulong ticket=_positionMAStopSets[i].ticket;
+      int timeframe=_positionMAStopSets[i].timeframe;
+      bool maTpFlg=_positionMAStopSets[i].maTpFlg;
+      int maTpPeriod=_positionMAStopSets[i].maTpPeriod;
+      int maTpMethod=_positionMAStopSets[i].maTpMethod;
+      bool maSlFlg=_positionMAStopSets[i].maSlFlg;
+      int maSlPeriod=_positionMAStopSets[i].maSlPeriod;
+      int maSlMethod=_positionMAStopSets[i].maSlMethod;
+      
+      FileWrite(fh,_Symbol,ticket,timeframe,maTpFlg,maTpPeriod,maTpMethod,maSlFlg,maSlPeriod,maSlMethod);
+     }
+     
+   FileClose(fh);
+   //---
+   return(true);
+  }
+  
+bool CAppWindowSelTradingTool::LoadPositionTrailingStopSets(void)
+  {
+   string fileName=_fileName_positionTrailingStopSets+"_"+IntegerToString(ChartID())+".csv";
+   
+   int fh = FileOpen(fileName, FILE_READ|FILE_ANSI|FILE_CSV, ',');
+   if (fh == INVALID_HANDLE)
+     {
+      PrintFormat("Failed to open %s file, Error code = %d",fileName,GetLastError()); 
+      return(false);
+     }
+     
+   int total=0;
+   
+   while(!FileIsEnding(fh))
+     {
+      if(IsStopped())   break;
+      
+      string symbol=FileReadString(fh);
+      ulong ticket=StringToInteger(FileReadString(fh));
+      double targetPips=StringToDouble(FileReadString(fh));
+      
+      if(symbol!=_Symbol)
+         continue;
+      
+      total++;
+
+      if(ArraySize(_positionTrailingStopSets)<total)
+         ArrayResize(_positionTrailingStopSets,total,10);
+               
+      _positionTrailingStopSets[total-1].ticket=ticket;
+      _positionTrailingStopSets[total-1].targetPips=targetPips;
+     }
+     
+   ArrayResize(_positionTrailingStopSets,total,10);
+   
+   FileClose(fh);   
+   FileDelete(fileName);
+   //---
+   return(true);
+  }
+  
+bool CAppWindowSelTradingTool::SavePositionTrailingStopSets(void)
+  {
+   string fileName=_fileName_positionTrailingStopSets+"_"+IntegerToString(ChartID())+".csv";
+   
+   int fh = FileOpen(fileName, FILE_WRITE|FILE_ANSI|FILE_CSV, ',');
+   if (fh == INVALID_HANDLE)
+     {
+      PrintFormat("Failed to open %s file, Error code = %d",fileName,GetLastError()); 
+      return(false);
+     }
+     
+   for(int i=0;i<ArraySize(_positionTrailingStopSets);i++)
+     {
+      ulong ticket=_positionTrailingStopSets[i].ticket;
+      double targetPips=_positionTrailingStopSets[i].targetPips;
+      
+      FileWrite(fh,_Symbol,ticket,DoubleToString(targetPips,1));
+     }
+     
+   FileClose(fh);
+   //---
+   return(true);
+  }     
   
 struct IndicatorMA
   {
    IndicatorMA()
-      : handle(INVALID_HANDLE)      
+      : handle(INVALID_HANDLE)
+      , timeframe(0)
       , period(20)
       , method(MODE_SMA)
      {}
      
-   int            handle;   
-   int            period;
-   ENUM_MA_METHOD method;
+   int               handle;   
+   ENUM_TIMEFRAMES   timeframe;
+   int               period;
+   ENUM_MA_METHOD    method;
   };
   
 IndicatorMA _IndMAs[];
 
+bool  _eaFirstTimeAttached=true;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -6582,11 +6987,11 @@ int OnInit()
       return(INIT_FAILED);
    }
    // EAが使用できる口座か
-   if(!AccountInfoInteger(ACCOUNT_TRADE_ALLOWED))
+   /*if(!AccountInfoInteger(ACCOUNT_TRADE_ALLOWED))
    {
       printf("Error Account TRADE Not Allow");
       return(INIT_FAILED);
-   }
+   }*/
    // Tickの取得ができる事
    if(!SymbolInfoTick(_Symbol,latest_price))
    {
@@ -6697,7 +7102,14 @@ void OnDeinit(const int reason)
       LINE_NAME_PREFIX,  // オブジェクト名のプレフィックス
       -1,  // ウィンドウ番号
       -1   // オブジェクトの型
-  );
+   );
+   // sat削除
+   ObjectsDeleteAll(
+      0,  // チャート識別子
+      SAT_NAME_PREFIX,  // オブジェクト名のプレフィックス
+      -1,  // ウィンドウ番号
+      -1   // オブジェクトの型
+   );
    // ポジションごとのボタン削除  
    ObjectsDeleteAll(
       0,  // チャート識別子
@@ -7567,14 +7979,15 @@ bool IsSummerTime() {
    return(_ret);
 }
 
-int FirstOrCreateMAIndicator(int period, ENUM_MA_METHOD method)
+int FirstOrCreateMAIndicator(ENUM_TIMEFRAMES timeframe, int period, ENUM_MA_METHOD method)
   {
    int idx=-1;
    
    int indMAsTotal=ArraySize(_IndMAs);
    for(int i=0;i<indMAsTotal;i++)
      {
-      if(_IndMAs[i].period==period &&
+      if(_IndMAs[i].timeframe==timeframe &&
+         _IndMAs[i].period==period &&
          _IndMAs[i].method==method)
         {
          idx=i;
@@ -7584,7 +7997,8 @@ int FirstOrCreateMAIndicator(int period, ENUM_MA_METHOD method)
      
    if(idx==-1)
      {
-      ArrayResize(_IndMAs,++indMAsTotal,10);      
+      ArrayResize(_IndMAs,++indMAsTotal,10);
+      _IndMAs[indMAsTotal-1].timeframe=timeframe;
       _IndMAs[indMAsTotal-1].period=period;
       _IndMAs[indMAsTotal-1].method=method;      
       
@@ -7608,3 +8022,29 @@ int FirstOrCreateMAIndicator(int period, ENUM_MA_METHOD method)
    
    return _IndMAs[idx].handle;  
   }
+  
+string sTfTable[] = {"M1","M5","M15","M30","H1","H4","D1","W1","MN"};
+int    iTfTable[] = {1,5,15,30,16385,16388,16408,32769,49153};
+
+int str2tf(string tfs)
+{
+   StringToUpper(tfs);
+   for (int i=ArraySize(iTfTable)-1; i>=0; i--)
+   {
+      if (tfs==sTfTable[i] || tfs==""+IntegerToString(iTfTable[i])) 
+      {
+//         return(MathMax(iTfTable[i],Period()));
+         return(iTfTable[i]);
+      }
+   }
+   return(Period());
+   
+}
+
+string tf2str(int tf)
+{
+   if(tf==0) tf=Period();
+   for (int i=ArraySize(iTfTable)-1; i>=0; i--) 
+         if (tf==iTfTable[i]) return(sTfTable[i]);
+   return("");
+}  
