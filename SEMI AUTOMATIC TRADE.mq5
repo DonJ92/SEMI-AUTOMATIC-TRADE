@@ -947,8 +947,7 @@ public:
    virtual bool      CreateCLabel(CLabel &obj, string name, string text, string font, int font_size, color font_color, color bg_color, int w, int h, ENUM_ANCHOR_POINT align);
    virtual bool      CreateCButton(CButton &obj, string name, string text, string font, int font_size, color font_color, color bg_color, color border_color, int w, int h, ENUM_ALIGN_MODE align);
    virtual bool      CreateCEdit(CEdit &obj, string name, string text, string font, int font_size, color font_color, color bg_color, int w, int h, ENUM_ALIGN_MODE align, bool read_only = false);
-   virtual bool      CreateCPanel(CPanel &obj, string name, color border_color, int w, int h);
-   virtual bool      CreateCPanelBg(CPanel &obj, string name, color border_color, color bg_color, int w, int h, int zorder);
+   virtual bool      CreateCPanel(CPanel &obj, string name, color bg_color, color border_color, int w, int h, int zorder=0);
    virtual bool      CreateCBitmap(CPanel &obj, string name, color border_color, color bg_color, int w, int h, int zorder);
    bool              CreateCCombobox(CComboBox &obj, string name, int w, int h);
    bool              CreateCCheckBox(CCheckBoxEx &obj, string name, string text, string font, int font_size, color font_color, int w, int h);
@@ -1410,41 +1409,41 @@ bool CAppWindowSelTradingTool::InitObject()
    /**
     * CPanel
     */ 
-   if(!CreateCPanel(m_sub_main_panel, "m_sub_main_panel", common_line_ColorBorder, my_border.Width(), 0))
+   if(!CreateCPanel(m_sub_main_panel, "m_sub_main_panel", my_client_ColorBackground, common_line_ColorBorder, my_border.Width(), 0))
       return false;
-   if(!CreateCPanel(m_common_line1, "m_common_line1", common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT*7/8, 0))
+   if(!CreateCPanel(m_common_line1, "m_common_line1", my_client_ColorBackground, common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT*7/8, 0))
       return false;   
-   if(!CreateCPanel(m_common_line2, "m_common_line2", common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT*7/8, 0))
+   if(!CreateCPanel(m_common_line2, "m_common_line2", my_client_ColorBackground, common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT*7/8, 0))
       return false;
-   if(!CreateCPanel(m_info_line1, "sub_info_line1", common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT, 0))
+   if(!CreateCPanel(m_info_line1, "sub_info_line1", my_client_ColorBackground, common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT, 0))
       return false;
-   if(!CreateCPanel(m_info_line2, "sub_info_line2", common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT, 0))
+   if(!CreateCPanel(m_info_line2, "sub_info_line2", my_client_ColorBackground, common_line_ColorBorder, COMMON_LABEL_COL1_WIDTH+COMMON_LABEL_COL2_WIDTH+COMMON_LABEL_COL3_WIDTH+BODY_INDENT_LEFT, 0))
       return false;
-   if(!CreateCPanelBg(m_position_panel, "sub_position_panel", my_client_ColorBorder, my_client_ColorBackground, ExtDialog.Width(), ExtDialog.Height(), 9999))
+   if(!CreateCPanel(m_position_panel, "sub_position_panel", my_client_ColorBackground, my_client_ColorBorder, ExtDialog.Width(), ExtDialog.Height(), 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_panel, POSITION_MENU_NAME_PREFIX+"main_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT*7, 9999))
+   if(!CreateCPanel(m_position_menu_main_panel, POSITION_MENU_NAME_PREFIX+"main_menu_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT*7, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_sub_panel, POSITION_MENU_NAME_PREFIX+"sub_menu_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_SUB_WIDTH, POSITION_MENU_SUB_HEIGHT_01, 9999))
+   if(!CreateCPanel(m_position_menu_sub_panel, POSITION_MENU_NAME_PREFIX+"sub_menu_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_SUB_WIDTH, POSITION_MENU_SUB_HEIGHT_01, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_exit_panel, POSITION_MENU_NAME_PREFIX+"main_menu_exit_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH-POSITION_MENU_CLOSE_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_exit_panel, POSITION_MENU_NAME_PREFIX+"main_menu_exit_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH-POSITION_MENU_CLOSE_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_doten_panel, POSITION_MENU_NAME_PREFIX+"main_menu_doten_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_doten_panel, POSITION_MENU_NAME_PREFIX+"main_menu_doten_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_percent_exit_panel, POSITION_MENU_NAME_PREFIX+"main_menu_percent_exit_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_percent_exit_panel, POSITION_MENU_NAME_PREFIX+"main_menu_percent_exit_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_sltatene_panel, POSITION_MENU_NAME_PREFIX+"main_menu_sltatene_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_sltatene_panel, POSITION_MENU_NAME_PREFIX+"main_menu_sltatene_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;
-   if(!CreateCPanelBg(m_position_menu_main_trailingstop_panel, POSITION_MENU_NAME_PREFIX+"main_menu_trailingstop_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_trailingstop_panel, POSITION_MENU_NAME_PREFIX+"main_menu_trailingstop_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;   
-   if(!CreateCPanelBg(m_position_menu_main_tpsl_panel, POSITION_MENU_NAME_PREFIX+"main_menu_tpsl_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_tpsl_panel, POSITION_MENU_NAME_PREFIX+"main_menu_tpsl_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;    
-   if(!CreateCPanelBg(m_position_menu_main_ma_tpsl_panel, POSITION_MENU_NAME_PREFIX+"main_menu_ma_tpsl_panel", position_menu_ColorBorder, position_menu_ColorBackground, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_position_menu_main_ma_tpsl_panel, POSITION_MENU_NAME_PREFIX+"main_menu_ma_tpsl_panel", position_menu_ColorBackground, position_menu_ColorBorder, POSITION_MENU_MAIN_WIDTH, POSITION_MENU_MAIN_HEIGHT, 9999))
       return false;   
-   if(!CreateCPanelBg(m_menu_popup_panel, SYMBOL_MENU_NAME_PREFIX+"panel", C'178,195,207', common_edit_ColorBackground, MENU_PANEL_EDIT_WIDTH * cols + 2, MENU_EDIT_HEIGHT * SYMBOL_MENU_COL_ITEM_COUNT + 2, 9999))
+   if(!CreateCPanel(m_menu_popup_panel, SYMBOL_MENU_NAME_PREFIX+"panel", common_edit_ColorBackground, C'178,195,207', MENU_PANEL_EDIT_WIDTH * cols + 2, MENU_EDIT_HEIGHT * SYMBOL_MENU_COL_ITEM_COUNT + 2, 9999))
       return false;
-   if(!CreateCPanelBg(m_graph_popup_panel, GRAPH_SYMBOL_MENU_NAME_PREFIX+"panel", C'178,195,207', common_edit_ColorBackground, MENU_EDIT_WIDTH * cols1 + 2, MENU_EDIT_HEIGHT * SYMBOL_MENU_COL_ITEM_COUNT + 2, 9999))
+   if(!CreateCPanel(m_graph_popup_panel, GRAPH_SYMBOL_MENU_NAME_PREFIX+"panel", common_edit_ColorBackground, C'178,195,207', MENU_EDIT_WIDTH * cols1 + 2, MENU_EDIT_HEIGHT * SYMBOL_MENU_COL_ITEM_COUNT + 2, 9999))
       return false;   
-   if(!CreateCPanelBg(m_graph_main_panel, GRAPH_NAME_PREFIX+"main_panel", graph_panel_ColorBorder, graph_panel_ColorBackground, GRAPH_PANEL_MAIN_WIDTH, GRAPH_PANEL_MAIN_HEIGHT, 9999))
+   if(!CreateCPanel(m_graph_main_panel, GRAPH_NAME_PREFIX+"main_panel", graph_panel_ColorBackground, graph_panel_ColorBorder, GRAPH_PANEL_MAIN_WIDTH, GRAPH_PANEL_MAIN_HEIGHT, 9999))
       return false;        
    /**
     * CEdit
@@ -1812,26 +1811,7 @@ bool CAppWindowSelTradingTool::CreateCEdit(CEdit &obj, string name, string text,
 
 }
 
-bool CAppWindowSelTradingTool::CreateCPanel(CPanel &obj, string name, color border_color, int w, int h)
-{
-   if(!obj.Create(0,name,0,
-      0,
-      0,
-      w,
-      h
-   ))
-      return(false);
-   obj.ColorBorder(border_color);
-   obj.Hide();
-   obj.ZOrder(9999);
-   if(!ExtDialog.Add(obj))
-      return(false);
-   
-   return true;
-
-}
-
-bool CAppWindowSelTradingTool::CreateCPanelBg(CPanel &obj, string name, color border_color, color bg_color, int w, int h, int zorder)
+bool CAppWindowSelTradingTool::CreateCPanel(CPanel &obj, string name, color bg_color, color border_color, int w, int h, int zorder)
 {
    if(!obj.Create(0,name,0,
       0,
@@ -1843,10 +1823,7 @@ bool CAppWindowSelTradingTool::CreateCPanelBg(CPanel &obj, string name, color bo
    obj.ColorBackground(bg_color);
    obj.ColorBorder(border_color);
    obj.Hide();
-   if(zorder!="")
-      obj.ZOrder(zorder);
-   else
-      obj.ZOrder(9999);
+   obj.ZOrder(zorder);
    if(!ExtDialog.Add(obj))
       return(false);
    
@@ -2219,7 +2196,7 @@ bool CAppWindowSelTradingTool::CreateCommon(int x, int y)
    //my_client.Show();
    
    m_sub_main_panel.Width(my_client.Width());
-   m_sub_main_panel.Height(my_client.Height()-MENU_EDIT_HEIGHT-MENU_INDENT_TOP-BODY_INDENT_ROW/3*2);
+   //m_sub_main_panel.Height(my_client.Height()-MENU_EDIT_HEIGHT-MENU_INDENT_TOP-BODY_INDENT_ROW/3*2);
    m_sub_main_panel.Move(ExtDialog.Left()+MENU_INDENT_LEFT, ExtDialog.Top()+MENU_INDENT_TOP+MENU_EDIT_HEIGHT+BODY_INDENT_ROW/3*2);
    m_sub_main_panel.Show();
 
